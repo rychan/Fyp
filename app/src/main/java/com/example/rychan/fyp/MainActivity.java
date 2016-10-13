@@ -58,9 +58,7 @@ public class MainActivity extends AppCompatActivity {
             mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
 
-        // testing 3
         Mat test = new Mat(200, 200, CvType.CV_8UC1);
         Imgproc.equalizeHist(test, test);
-        //richard test
     }
 }
