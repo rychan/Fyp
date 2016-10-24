@@ -1,67 +1,5 @@
 package com.example.rychan.fyp;
 
-/*import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-
-import org.opencv.android.BaseLoaderCallback;
-import org.opencv.android.LoaderCallbackInterface;
-import org.opencv.android.OpenCVLoader;
-import org.opencv.core.CvType;
-import org.opencv.core.Mat;
-import org.opencv.imgproc.Imgproc;
-
-public class MainActivity extends AppCompatActivity {
-
-    private static final String TAG = "MainActivity";
-
-    private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
-        @Override
-        public void onManagerConnected(int status) {
-            switch (status) {
-                case LoaderCallbackInterface.SUCCESS:
-                {
-                    Log.i(TAG, "Opencv loaded successfully");
-                } break;
-                default:
-                {
-                    super.onManagerConnected(status);
-                } break;
-            }
-        }
-    };
-
-//    static {
-//        if (!OpenCVLoader.initDebug()) {
-//            // Handle initialization error
-//        }
-//    }
-
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        Log.i(TAG, "called onCreate");
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-    }
-
-    @Override
-    public void onResume()
-    {
-        Log.i(TAG, "called onResume");
-        super.onResume();
-        if (!OpenCVLoader.initDebug()) {
-            Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
-            OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this, mLoaderCallback);
-        } else {
-            Log.d(TAG, "OpenCV library found inside package. Using it!");
-            mLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
-        }
-
-        Mat test = new Mat(200, 200, CvType.CV_8UC1);
-        Imgproc.equalizeHist(test, test);
-    }*/
-
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.Environment;
@@ -85,6 +23,7 @@ import org.opencv.core.MatOfPoint;
 import org.opencv.core.Point;
 import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
+import org.opencv.core.Size;
 import org.opencv.features2d.FeatureDetector;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -152,15 +91,14 @@ public class MainActivity extends AppCompatActivity {
                 Mat mRgba = Imgcodecs.imread(SD_PATH + "/testimages/" + img);
                 Mat mGray = Imgcodecs.imread(SD_PATH + "/testimages/" + img, 0);
 
-                Mat m = textDetection(mRgba, mGray);
+                Mat mDRgba = new Mat();
+                Mat mDGray = new Mat();
 
-                // convert to bitmap:
-                Bitmap bm = Bitmap.createBitmap(m.cols(), m.rows(),Bitmap.Config.ARGB_8888);
-                Utils.matToBitmap(m, bm);
+                downScale(mRgba,mDRgba);
+                downScale(mGray,mDGray);
 
-                // find the imageview and draw it!
-                ImageView iv = (ImageView) findViewById(R.id.imageView);
-                iv.setImageBitmap(bm);
+                textDetection(mDRgba, mDGray);
+                displayImage(mDRgba);
             }
         });
 
@@ -168,9 +106,12 @@ public class MainActivity extends AppCompatActivity {
         // make a mat and draw something
         Mat m = Mat.zeros(600,400, CvType.CV_8UC3);
         Imgproc.putText(m, "Display image", new Point(10,200), Core.FONT_HERSHEY_SCRIPT_SIMPLEX, 2, new Scalar(200,200,0),2);
+        displayImage(m);
+    }
 
+    private void displayImage(Mat m) {
         // convert to bitmap:
-        Bitmap bm = Bitmap.createBitmap(m.cols(), m.rows(),Bitmap.Config.ARGB_8888);
+        Bitmap bm = Bitmap.createBitmap(m.cols(), m.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bm);
 
         // find the imageview and draw it!
@@ -179,7 +120,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private Mat textDetection(Mat mRgba, Mat mGrey) {
+    private void downScale(Mat src, Mat dst) {
+        int w = src.cols();
+        int h = src.rows();
+        while (w > 2048 || h > 2048) {
+            w /= 2;
+            h /= 2;
+        }
+        Imgproc.resize(src, dst, new Size(w,h));
+    }
+
+    private void textDetection(Mat mRgba, Mat mGrey) {
         Scalar CONTOUR_COLOR = new Scalar(255);
         MatOfKeyPoint keypoint = new MatOfKeyPoint();
         List<KeyPoint> listpoint;
@@ -239,6 +190,6 @@ public class MainActivity extends AppCompatActivity {
             } else
                 Imgproc.rectangle(mRgba, rectan3.br(), rectan3.tl(), CONTOUR_COLOR);
         }
-        return mRgba;
+        //return mRgba;
     }
 }
