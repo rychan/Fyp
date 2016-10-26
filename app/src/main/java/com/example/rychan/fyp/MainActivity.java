@@ -130,65 +130,62 @@ public class MainActivity extends AppCompatActivity {
         Imgproc.resize(src, dst, new Size(w,h));
     }
 
+
     private void textDetection(Mat mRgba, Mat mGrey) {
         Scalar CONTOUR_COLOR = new Scalar(255);
-        MatOfKeyPoint keypoint = new MatOfKeyPoint();
-        List<KeyPoint> listpoint;
+
+        // Apply MSER detector to the grey scale image
+        MatOfKeyPoint keyPoint = new MatOfKeyPoint();
+        FeatureDetector detector = FeatureDetector.create(FeatureDetector.MSER);
+        detector.detect(mGrey, keyPoint);
+        List<KeyPoint> listPoint = keyPoint.toList();
+
+        // Loop through all key points and draw valid rectangles on a mask
         KeyPoint kpoint;
         Mat mask = Mat.zeros(mGrey.size(), CvType.CV_8UC1);
-        int rectanx1;
-        int rectany1;
-        int rectanx2;
-        int rectany2;
-        int imgsize = mGrey.height() * mGrey.width();
-        Scalar zeos = new Scalar(0, 0, 0);
 
-        List<MatOfPoint> contour2 = new ArrayList<>();
-        Mat kernel = new Mat(1, 50, CvType.CV_8UC1, Scalar.all(255));
-        Mat morbyte = new Mat();
-        Mat hierarchy = new Mat();
-
-        Rect rectan3;
-
-        FeatureDetector detector = FeatureDetector.create(FeatureDetector.MSER);
-        detector.detect(mGrey, keypoint);
-        listpoint = keypoint.toList();
-
-        for (int ind = 0; ind < listpoint.size(); ind++) {
-            kpoint = listpoint.get(ind);
-            rectanx1 = (int) (kpoint.pt.x - 0.5 * kpoint.size);
-            rectany1 = (int) (kpoint.pt.y - 0.5 * kpoint.size);
-            rectanx2 = (int) (kpoint.size);
-            rectany2 = (int) (kpoint.size);
-            if (rectanx1 <= 0)
-                rectanx1 = 1;
-            if (rectany1 <= 0)
-                rectany1 = 1;
-            if ((rectanx1 + rectanx2) > mGrey.width())
-                rectanx2 = mGrey.width() - rectanx1;
-            if ((rectany1 + rectany2) > mGrey.height())
-                rectany2 = mGrey.height() - rectany1;
-            Rect rectant = new Rect(rectanx1, rectany1, rectanx2, rectany2);
+        for (int ind = 0; ind < listPoint.size(); ind++) {
+            kpoint = listPoint.get(ind);
+            int rectx1 = (int) (kpoint.pt.x - 0.5 * kpoint.size);
+            int recty1 = (int) (kpoint.pt.y - 0.5 * kpoint.size);
+            int rectx2 = (int) (kpoint.size);
+            int recty2 = (int) (kpoint.size);
+            if (rectx1 <= 0)
+                rectx1 = 1;
+            if (recty1 <= 0)
+                recty1 = 1;
+            if ((rectx1 + rectx2) > mGrey.width())
+                rectx2 = mGrey.width() - rectx1;
+            if ((recty1 + recty2) > mGrey.height())
+                recty2 = mGrey.height() - recty1;
+            Rect rect = new Rect(rectx1, recty1, rectx2, recty2);
             try {
-                Mat roi = new Mat(mask, rectant);
+                Mat roi = new Mat(mask, rect);
                 roi.setTo(CONTOUR_COLOR);
             } catch (Exception ex) {
                 Log.d("mylog", "mat roi error " + ex.getMessage());
             }
         }
 
+        // Do Dilation on the rectangles
+        Mat kernel = new Mat(1, 50, CvType.CV_8UC1, Scalar.all(255));
+        Mat morbyte = new Mat();
         Imgproc.morphologyEx(mask, morbyte, Imgproc.MORPH_DILATE, kernel);
 
-        Imgproc.findContours(morbyte, contour2, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        // Group rectangles together
+        List<MatOfPoint> contour = new ArrayList<>();
+        Mat hierarchy = new Mat();
+        Imgproc.findContours(morbyte, contour, hierarchy, Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
 
-        for (int ind = 0; ind < contour2.size(); ind++) {
-            rectan3 = Imgproc.boundingRect(contour2.get(ind));
-            if (rectan3.area() > 0.5 * imgsize || rectan3.area() < 100 || rectan3.width / rectan3.height < 2) {
-                Mat roi = new Mat(morbyte, rectan3);
-                roi.setTo(zeos);
-
+        // Reject rectangles that are too big , too small or too tall
+        int imgSize = mGrey.height() * mGrey.width();
+        for (int ind = 0; ind < contour.size(); ind++) {
+            Rect rect = Imgproc.boundingRect(contour.get(ind));
+            if (rect.area() < 100 || rect.width / rect.height < 2) {
+                Mat roi = new Mat(morbyte, rect);
+                roi.setTo(new Scalar(0, 0, 0));
             } else
-                Imgproc.rectangle(mRgba, rectan3.br(), rectan3.tl(), CONTOUR_COLOR);
+                Imgproc.rectangle(mRgba, rect.br(), rect.tl(), CONTOUR_COLOR);
         }
         //return mRgba;
     }
