@@ -8,21 +8,36 @@
     <ImageView
         android:layout_width="match_parent"
         android:id="@+id/imageView"
-        android:layout_weight="0.80"
-        android:layout_height="400dp" />
-
-    <EditText
-        android:layout_width="match_parent"
-        android:layout_height="50dp"
-        android:inputType="textPersonName"
-        android:text="Filename"
-        android:ems="10"
-        android:id="@+id/editText"
-        android:layout_weight="0.39" />
+        android:layout_height="0px"
+        android:layout_gravity="fill"
+        android:layout_weight="1" />
 
     <Button
-        android:text="Display"
+        android:text="Choose one from below"
         android:layout_width="match_parent"
         android:id="@+id/button"
-        android:layout_height="50dp" />
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom" />
+
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom">
+
+        <Button
+            android:text="Camera"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/camerabutton"
+            android:layout_weight="1" />
+
+        <Button
+            android:text="Gallery"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/gallerybutton"
+            android:layout_weight="1" />
+    </LinearLayout>
+
 </LinearLayout>
