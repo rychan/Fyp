@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    android:orientation="vertical" android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:weightSum="1">
 
     <ImageView
-        android:layout_width="match_parent"
         android:id="@+id/imageView"
+        android:layout_width="match_parent"
         android:layout_height="0px"
         android:layout_gravity="fill"
         android:layout_weight="1" />
 
     <Button
+        android:id="@+id/button"
         android:text="Choose one from below"
         android:layout_width="match_parent"
-        android:id="@+id/button"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom" />
 
@@ -26,17 +27,17 @@
         android:layout_gravity="bottom">
 
         <Button
+            android:id="@+id/camerabutton"
             android:text="Camera"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/camerabutton"
             android:layout_weight="1" />
 
         <Button
+            android:id="@+id/gallerybutton"
             android:text="Gallery"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/gallerybutton"
             android:layout_weight="1" />
     </LinearLayout>
 

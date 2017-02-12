@@ -18,6 +18,7 @@ import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
 import org.opencv.android.OpenCVLoader;
 import org.opencv.android.Utils;
+import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.KeyPoint;
 import org.opencv.core.Mat;
@@ -51,7 +52,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String SD_PATH = Environment.getExternalStorageDirectory().getPath();
 
     // View
-//    private EditText editText;
+    private ImageView imageView;
     private Button button;
 
     // Button state
@@ -60,22 +61,23 @@ public class MainActivity extends AppCompatActivity {
     private static final int STATE_PERSPECTIVE_TRANSFORM = 2;
     private static final int STATE_MSER_DETECTOR = 3;
     private static final int STATE_TEXT_DETECTION = 4;
-    private static final int STATE_REPEAT = 5;
+    private static final int STATE_RECOGNITION = 5;
+    private static final int STATE_REPEAT = 6;
     private static final String[] STATE_LABEL = {
             "Choose one from below", "Hough transform",
             "Perspective transform", "MSER detector",
-            "Text detect", "Repeat or choose one from below"};
+            "Text detect", "Text Recognition",
+            "Repeat or choose one from below"};
     private int buttonState = STATE_INIT;
 
     // Camera intent storage
     private String photoPath;
-    static final int REQUEST_TAKE_PHOTO = 1;
-
-    static final int REQUEST_LOAD_IMG = 2;
+    private String receiptPath;
+    static final int REQUEST_CAMERA = 1;
+    static final int REQUEST_GALLERY = 2;
 
     // Key of bundle to be saved
-    static final String PHOTO_PATH = "photoPath";
-
+//    static final String PHOTO_PATH = "photoPath";
 
 
     @Override
@@ -83,6 +85,9 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, "called onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.display_image);
+
+        imageView = (ImageView) findViewById(R.id.imageView);
+        button = (Button) findViewById(R.id.button);
     }
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -92,7 +97,7 @@ public class MainActivity extends AppCompatActivity {
                 case LoaderCallbackInterface.SUCCESS:
                 {
                     Log.i(TAG, "Opencv loaded successfully");
-                    mainFunc();
+                    setButtonListener();
                 } break;
                 default:
                 {
@@ -122,41 +127,41 @@ public class MainActivity extends AppCompatActivity {
 //    }
 
 
-    private File createImageFile() throws IOException {
+    private File createImageFile(String type, File storageDir) throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
-        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        File image = File.createTempFile(
+        String imageFileName = type + "_" + timeStamp + "_";
+//        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        return File.createTempFile(
                 imageFileName,  /* prefix */
                 ".jpg",         /* suffix */
                 storageDir      /* directory */
         );
-
-        // Save a file: path for use with ACTION_VIEW intents
-        photoPath = image.getAbsolutePath();
-        return image;
     }
 
-    private void dispatchTakePictureIntent() {
-        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+    private void dispatchCameraIntent() {
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
+        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             // Create the File where the photo should go
             File photoFile = null;
             try {
-                photoFile = createImageFile();
+                photoFile = createImageFile("Photo", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+
+                // Save the file path for loading
+                photoPath = photoFile.getAbsolutePath();
             } catch (IOException ex) {
                 // Error occurred while creating the File
                 Log.d(TAG, "Cannot create file");
             }
+
             // Continue only if the File was successfully created
             if (photoFile != null) {
                 Uri photoURI = FileProvider.getUriForFile(this,
                         "com.example.android.fileprovider",
                         photoFile);
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+                cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(cameraIntent, REQUEST_CAMERA);
             }
         }
     }
@@ -166,7 +171,7 @@ public class MainActivity extends AppCompatActivity {
         galleryIntent.setType("image/*");
 
         // Start the Intent
-        startActivityForResult(galleryIntent, REQUEST_LOAD_IMG);
+        startActivityForResult(galleryIntent, REQUEST_GALLERY);
     }
 
     private void dispatchFolderIntent() {
@@ -175,7 +180,14 @@ public class MainActivity extends AppCompatActivity {
         folderIntent.setDataAndType(uri, "image/*");
 
         // Start the Intent
-        startActivityForResult(folderIntent, REQUEST_LOAD_IMG);
+        startActivityForResult(folderIntent, REQUEST_GALLERY);
+    }
+
+    private void dispatchRecognitionIntent(String receiptPath) {
+        Intent recognitionIntent = new Intent(this, Recognition.class);
+        recognitionIntent.putExtra("receipt_path", receiptPath);
+
+        startActivity(recognitionIntent);
     }
 
     public String getImagePath(Uri uri){
@@ -199,34 +211,50 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_TAKE_PHOTO && resultCode == RESULT_OK) {
-            mat1 = Imgcodecs.imread(photoPath);
-            Mat mCanny = new Mat();
-            mat2 = pTransform(mat1, mCanny);
+        switch(requestCode) {
+            case REQUEST_CAMERA:
+                if (resultCode == RESULT_OK) {
+                    mat1 = Imgcodecs.imread(photoPath);
+                    Mat mCanny = new Mat();
+                    mat2 = pTransform(mat1, mCanny);
 
-            displayImage(mCanny);
-            buttonState = STATE_HOUGH_TRANSFORM;
-            button.setText(STATE_LABEL[buttonState]);
-        }
+                    displayImage(mCanny, imageView);
+                    buttonState = STATE_HOUGH_TRANSFORM;
+                    button.setText(STATE_LABEL[buttonState]);
 
-        if (requestCode == REQUEST_LOAD_IMG && resultCode == RESULT_OK && data != null) {
-            photoPath = getImagePath(data.getData());
-            mat1 = Imgcodecs.imread(photoPath);
-            Mat mCanny = new Mat();
-            mat2 = pTransform(mat1, mCanny);
+                } else if (resultCode == RESULT_CANCELED) {
 
-            displayImage(mCanny);
-            buttonState = STATE_HOUGH_TRANSFORM;
-            button.setText(STATE_LABEL[buttonState]);
+                    File file = new File(photoPath);
+                    file.delete();
+                }
+                break;
+
+            case REQUEST_GALLERY:
+                if (resultCode == RESULT_OK && data != null) {
+                    photoPath = getImagePath(data.getData());
+                    mat1 = Imgcodecs.imread(photoPath);
+                    Mat mCanny = new Mat();
+                    mat2 = pTransform(mat1, mCanny);
+
+                    displayImage(mCanny, imageView);
+                    buttonState = STATE_HOUGH_TRANSFORM;
+                    button.setText(STATE_LABEL[buttonState]);
+                }
+                break;
+
+            default:
+
         }
     }
 
 
     @Override
     protected void onSaveInstanceState(Bundle savedInstanceState) {
+        // Save state members to saved instance
+        savedInstanceState.putString("photo_path", photoPath);
+        savedInstanceState.putString("receipt_path", receiptPath);
 
-        savedInstanceState.putString(PHOTO_PATH, photoPath);
-
+        // Always call the superclass so it can save the view hierarchy
         super.onSaveInstanceState(savedInstanceState);
     }
 
@@ -236,13 +264,14 @@ public class MainActivity extends AppCompatActivity {
         super.onRestoreInstanceState(savedInstanceState);
 
         // Restore state members from saved instance
-        photoPath = savedInstanceState.getString(PHOTO_PATH);
+        photoPath = savedInstanceState.getString("photo_path");
+        receiptPath = savedInstanceState.getString("receipt_path");
     }
 
 
     /////////////////////////////////////////////////////////////////////////////
-    public void mainFunc() {
-        button = (Button) findViewById(R.id.button);
+    public void setButtonListener() {
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -261,26 +290,45 @@ public class MainActivity extends AppCompatActivity {
 //                        break;
 
                     case STATE_HOUGH_TRANSFORM:
-                        displayImage(mat1);
+                        displayImage(mat1, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
                     case STATE_PERSPECTIVE_TRANSFORM:
-                        displayImage(mat2);
+                        displayImage(mat2, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
                     case STATE_MSER_DETECTOR:
                         Mat mat3 = fitScreen(mat2);
-                        Mat mat4 = detectText(mat3);
+                        // Create the File where the photo should go
+                        File photoFile = null;
+                        try {
+                            photoFile = createImageFile("Receipt", getExternalFilesDir("Receipts"));
+                            receiptPath = photoFile.getAbsolutePath();
+                        } catch (IOException ex) {
+                            // Error occurred while creating the File
+                            Log.d(TAG, "Cannot create file");
+                        }
+
+                        // Continue only if the File was successfully created
+                        if (photoFile != null) {
+                            Imgcodecs.imwrite(receiptPath, mat3);
+                        }
+                        Mat mat4 = segmentation(mat3);
 
                         mat2 = mat3;
-                        displayImage(mat4);
+                        displayImage(mat4, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
                     case STATE_TEXT_DETECTION:
-                        displayImage(mat2);
+                        displayImage(mat2, imageView);
+                        button.setText(STATE_LABEL[++buttonState]);
+                        break;
+
+                    case STATE_RECOGNITION:
+                        dispatchRecognitionIntent(receiptPath);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
@@ -289,7 +337,7 @@ public class MainActivity extends AppCompatActivity {
                         Mat mCanny = new Mat();
                         mat2 = pTransform(mat1, mCanny);
 
-                        displayImage(mCanny);
+                        displayImage(mCanny, imageView);
                         buttonState = STATE_HOUGH_TRANSFORM;
                         button.setText(STATE_LABEL[buttonState]);
                         break;
@@ -300,6 +348,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        Button cameraButton = (Button) findViewById(R.id.camerabutton);
+        cameraButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                dispatchCameraIntent();
+            }
+        });
 
         Button galleryButton = (Button) findViewById(R.id.gallerybutton);
         galleryButton.setOnClickListener(new View.OnClickListener() {
@@ -309,13 +364,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        Button cameraButton = (Button) findViewById(R.id.camerabutton);
-        cameraButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                dispatchTakePictureIntent();
-            }
-        });
 
         // make a mat and draw something
 //        Mat m = Mat.zeros(600,400, CvType.CV_8UC3);
@@ -329,20 +377,20 @@ public class MainActivity extends AppCompatActivity {
     private Mat mat1;
 
 
-    private Mat fitScreen(Mat src) {
+    public static Mat fitScreen(Mat src) {
         Mat dst = new Mat();
-        int w = src.cols();
-        int h = src.rows();
-        while (w > 2048 || h > 2048) {
-            w >>= 1;
-            h >>= 1;
+        int width = src.cols();
+        int height = src.rows();
+        while (width > 2048 || height > 2048) {
+            width >>= 1;
+            height >>= 1;
         }
-        Imgproc.resize(src, dst, new Size(w,h));
+        Imgproc.resize(src, dst, new Size(width,height));
         return dst;
     }
 
 
-    private void displayImage(Mat src) {
+    public static void displayImage(Mat src, ImageView iv) {
         Mat m = fitScreen(src);
         if (m.channels() == 3) {
             Imgproc.cvtColor(m, m, Imgproc.COLOR_BGR2RGB);
@@ -352,11 +400,8 @@ public class MainActivity extends AppCompatActivity {
         Bitmap bm = Bitmap.createBitmap(m.cols(), m.rows(), Bitmap.Config.ARGB_8888);
         Utils.matToBitmap(m, bm);
 
-        // find the imageview and draw it!
-        ImageView iv = (ImageView) findViewById(R.id.imageView);
         iv.setImageBitmap(bm);
     }
-
 
 
     class Line {
@@ -389,48 +434,55 @@ public class MainActivity extends AppCompatActivity {
 
         void draw(Mat img, double scale){
             Scalar colour = new Scalar(0,0,255);
-            Imgproc.line(img, new Point(pt1.x * scale, pt1.y * scale), new Point(pt2.x * scale, pt2.y * scale), colour, 5);
+            Imgproc.line(img, new Point((pt1.x + 0.5) * scale, (pt1.y + 0.5) * scale),
+                    new Point((pt2.x + 0.5) * scale, (pt2.y + 0.5) * scale), colour, (int) scale / 2);
         }
     }
 
     class xComparator implements Comparator<Line> {
         @Override
-        public int compare(Line o1, Line o2) {
-            return (o1.midPt.x < o2.midPt.x) ? -1 : (o1.midPt.x ==  o2.midPt.x) ? 0 : 1;
+        public int compare(Line l1, Line l2) {
+            return (l1.midPt.x < l2.midPt.x) ? -1 : (l1.midPt.x ==  l2.midPt.x) ? 0 : 1;
         }
     }
 
     class yComparator implements Comparator<Line> {
         @Override
-        public int compare(Line o1, Line o2) {
-            return (o1.midPt.y < o2.midPt.y) ? -1 : (o1.midPt.y ==  o2.midPt.y) ? 0 : 1;
+        public int compare(Line l1, Line l2) {
+            return (l1.midPt.y < l2.midPt.y) ? -1 : (l1.midPt.y ==  l2.midPt.y) ? 0 : 1;
         }
     }
 
-    private Mat pTransform(Mat srcBRG, Mat canny) {
+    private Mat pTransform(Mat srcBGR, Mat canny) {
 
         // resize mat2 to resizeBGR to reduce computation
         Mat resizeBGR = new Mat();
-        double width = srcBRG.width(), height = srcBRG.height(), minWidth = 200;
-        double scale = Math.min(10.0, width / minWidth);
+        double width = srcBGR.cols(), height = srcBGR.rows();
+        double minWidth = 200;
+        double scale = Math.min(8.0, width / minWidth);
         double resizeWidth = width / scale, resizeHeight = height / scale;
-        Imgproc.resize(srcBRG, resizeBGR, new Size(resizeWidth, resizeHeight));
+        Imgproc.resize(srcBGR, resizeBGR, new Size(resizeWidth, resizeHeight), 0 , 0, Imgproc.INTER_AREA);
+
+
+//        Mat resizeBGR = srcBGR.clone();
+//        double scale = 1.0;
+//        double resizeWidth = resizeBGR.cols(), resizeHeight = resizeBGR.rows();
         //Mat imgDis = resizeBGR.clone();
 
         // convert to grayscale image
-        Mat grey = new Mat();
-        Imgproc.cvtColor(resizeBGR, grey, Imgproc.COLOR_BGR2GRAY);
+        Mat gray = new Mat();
+        Imgproc.cvtColor(resizeBGR, gray, Imgproc.COLOR_BGR2GRAY);
 
         // get edges of the image
-        double highThreshold = Imgproc.threshold(grey, new Mat(), 0, 255, Imgproc.THRESH_BINARY | Imgproc.THRESH_OTSU);
+        double highThreshold = Imgproc.threshold(gray, new Mat(), 0, 255, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU);
         double lowThreshold = highThreshold * 0.5;
-        Imgproc.Canny(grey, canny, lowThreshold, highThreshold);
+        Imgproc.Canny(gray, canny, lowThreshold, highThreshold);
 
         Mat lines = new Mat();
         Imgproc.HoughLinesP(canny, lines, 1, Math.PI / 180, (int) resizeWidth/3 , resizeWidth / 3, 20);
 
-        ArrayList<Line> horizontals = new ArrayList<>();
-        ArrayList<Line> verticals = new ArrayList<>();
+        List<Line> horizontals = new ArrayList<>();
+        List<Line> verticals = new ArrayList<>();
         for (int i = 0; i < lines.rows(); ++i) {
             double[] v = lines.get(i,0);
             double deltaX = v[0] - v[2];
@@ -492,23 +544,23 @@ public class MainActivity extends AppCompatActivity {
         // find corners of source image with the sequence [topLeft, topRight, bottomLeft, bottomRight]
         Mat srcPoints = new Mat(4,1,CvType.CV_32FC2);
         srcPoints.put(0, 0,
-                topLeft.x * scale, topLeft.y * scale,
-                topRight.x * scale, topRight.y * scale,
-                bottomLeft.x * scale, bottomLeft.y * scale,
-                bottomRigth.x * scale, bottomRigth.y * scale);
+                (topLeft.x + 0.5) * scale, (topLeft.y + 0.5) * scale,
+                (topRight.x + 0.5)* scale, (topRight.y + 0.5)* scale,
+                (bottomLeft.x + 0.5)* scale, (bottomLeft.y + 0.5)* scale,
+                (bottomRigth.x + 0.5)* scale, (bottomRigth.y + 0.5)* scale);
 
         // get transformation matrix
         Mat transMat = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
 
         // apply perspective transformation
-        Imgproc.warpPerspective(srcBRG, dstBGR, transMat, dstBGR.size());
+        Imgproc.warpPerspective(srcBGR, dstBGR, transMat, dstBGR.size());
 
         // change input matrix for debug
         for (Line line: horizontals) {
-            line.draw(srcBRG, scale);
+            line.draw(srcBGR, scale);
         }
         for (Line line: verticals) {
-            line.draw(srcBRG, scale);
+            line.draw(srcBGR, scale);
         }
 
         return dstBGR;
@@ -545,16 +597,7 @@ public class MainActivity extends AppCompatActivity {
             int yStart = Math.max((int) (point.pt.y - 0.5 * point.size), 1);
             int xLength = Math.min((int) (point.size), width - xStart);
             int yLength = Math.min((int) (point.size), height - yStart);
-//            if (xStart <= 0) {
-//                xStart = 1;
-//            }
-//            if (yStart <= 0) {
-//                yStart = 1;
-//            }
-//            if ((xStart + xLength) > srcGray.width())
-//                xLength = srcGray.width() - xStart;
-//            if ((yStart + yLength) > srcGray.height())
-//                yLength = srcGray.height() - yStart;
+
             Rect rect = new Rect(xStart, yStart, xLength, yLength);
             Mat roi = new Mat(mask, rect);
             roi.setTo(CONTOUR_COLOR);
@@ -581,6 +624,48 @@ public class MainActivity extends AppCompatActivity {
         return mask;
 //        return test;
 //        return dilatedMask;
+    }
+
+
+    private Mat segmentation(Mat srcBGR) {
+
+        int width = srcBGR.cols();
+        int height = srcBGR.rows();
+
+        Mat gray = new Mat();
+        Imgproc.cvtColor(srcBGR, gray, Imgproc.COLOR_BGR2GRAY);
+
+        // get edges of the image
+        double highThreshold = Imgproc.threshold(gray, new Mat(), 0, 255, Imgproc.THRESH_BINARY + Imgproc.THRESH_OTSU);
+        double lowThreshold = highThreshold * 0.5;
+        Mat canny = new Mat();
+        Imgproc.Canny(gray, canny, lowThreshold, highThreshold);
+
+        Mat rowSum = new Mat();
+        Core.reduce(canny, rowSum, 1, Core.REDUCE_SUM, CvType.CV_32S);
+        rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
+
+        Mat rowMask = new Mat();
+        Imgproc.threshold(rowSum, rowMask, 5, 255, Imgproc.THRESH_BINARY);
+
+        Mat kernel = new Mat(9, 1, CvType.CV_8UC1, Scalar.all(255));
+        Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_DILATE, kernel);
+
+        Mat mask = new Mat(height, width, CvType.CV_8UC1);
+        for (int i = 0; i < width; ++i) {
+            rowMask.copyTo(mask.col(i));
+        }
+
+        List<MatOfPoint> contour = new ArrayList<>();
+        Imgproc.findContours(mask, contour, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+        for (int i = 0; i < contour.size(); ++i) {
+            Rect rect = Imgproc.boundingRect(contour.get(i));
+            Imgproc.rectangle(srcBGR, rect.br(), rect.tl(), new Scalar(0, 255, 0));
+        }
+
+//        srcBGR.setTo(new Scalar(0, 0, 0), mask);
+
+        return canny;
     }
 
 }
