@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+
+    <solid android:color="@color/regionSelectorCircleBackground" />
+
+    <size
+        android:width="@dimen/regionSelectorCircleWidth"
+        android:height="@dimen/regionSelectorCircleWidth" />
+
+    <stroke
+        android:width="@dimen/regionSelectorStrokeWidth"
+        android:color="@color/regionSelectorCircleStrokeColor"></stroke>
+</shape>

@@ -1,4 +1,4 @@
-package com.example.rychan.fyp;
+package com.example.rychan.fyp.recognition;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -8,6 +8,9 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import com.example.rychan.fyp.perspective_transform.DisplayImageFragment;
+import com.example.rychan.fyp.R;
 
 import org.opencv.core.Mat;
 import org.opencv.core.Range;
@@ -39,7 +42,7 @@ public class RecognitionAdapter extends ArrayAdapter<Range>{
         }
 
         ImageView imageView = (ImageView) convertView.findViewById(R.id.image);
-        MainActivity.displayImage(receiptImage.rowRange(range), imageView);
+        DisplayImageFragment.displayImage(receiptImage.rowRange(range), imageView);
 
         TextView textView = (TextView) convertView.findViewById(R.id.recognition_result);
         textView.setText(resultList.get(position));

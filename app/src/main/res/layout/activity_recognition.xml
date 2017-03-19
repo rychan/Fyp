@@ -4,7 +4,7 @@
     android:id="@+id/activity_recognition"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context="com.example.rychan.fyp.Recognition">
+    tools:context="com.example.rychan.fyp.recognition.Recognition">
 
     <ListView
         android:layout_width="match_parent"

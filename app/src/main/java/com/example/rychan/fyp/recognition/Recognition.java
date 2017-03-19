@@ -1,4 +1,4 @@
-package com.example.rychan.fyp;
+package com.example.rychan.fyp.recognition;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.ListView;
 
+import com.example.rychan.fyp.R;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.opencv.android.Utils;
@@ -35,12 +36,19 @@ public class Recognition extends AppCompatActivity {
 
         Intent intent = getIntent();
         String receiptPath = intent.getStringExtra("receipt_path");
-
         Mat receiptMat = Imgcodecs.imread(receiptPath);
-        List<Range> rowRangeList = segmentation(receiptMat);
 
+
+        List<Range> rowRangeList = segmentation(receiptMat);
         RecognitionAdapter myAdapter = new RecognitionAdapter(this, rowRangeList, receiptMat,
                 textRecognition(receiptMat, rowRangeList));
+//
+//        List<Range> rowRangeList = new ArrayList<>();
+//        rowRangeList.add(new Range(0, receiptMat.rows()));
+//        RecognitionAdapter myAdapter = new RecognitionAdapter(this, rowRangeList, receiptMat,
+//                textRecognition2(receiptMat));
+
+
         listView.setAdapter(myAdapter);
     }
 
@@ -64,9 +72,9 @@ public class Recognition extends AppCompatActivity {
         rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
 
         Mat rowMask = new Mat();
-        Imgproc.threshold(rowSum, rowMask, 5, 255, Imgproc.THRESH_BINARY);
+        Imgproc.threshold(rowSum, rowMask, 2, 255, Imgproc.THRESH_BINARY);
 
-        Mat kernel = new Mat(9, 1, CvType.CV_8UC1, Scalar.all(255));
+        Mat kernel = new Mat(15, 1, CvType.CV_8UC1, Scalar.all(255));
         Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_DILATE, kernel);
 
         Mat mask = new Mat(height, width, CvType.CV_8UC1);
@@ -87,11 +95,12 @@ public class Recognition extends AppCompatActivity {
         return rowRangeList;
     }
 
+
     private List<String> textRecognition(Mat srcImage, List<Range> rowRangeList){
         List<String> resultList = new ArrayList<>();
 
         TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
+        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng+chi_tra");
         baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
 
         for (Range r: rowRangeList) {
@@ -101,6 +110,25 @@ public class Recognition extends AppCompatActivity {
             baseApi.setImage(bm);
             resultList.add(baseApi.getUTF8Text());
         }
+
+        baseApi.clear();
+        baseApi.end();
+        return resultList;
+    }
+
+    private List<String> textRecognition2(Mat srcImage){
+        List<String> resultList = new ArrayList<>();
+
+        TessBaseAPI baseApi = new TessBaseAPI();
+        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT);
+
+        Bitmap bm = Bitmap.createBitmap(srcImage.cols(), srcImage.rows(), Bitmap.Config.ARGB_8888);
+        Utils.matToBitmap(srcImage, bm);
+
+        baseApi.setImage(bm);
+        resultList.add(baseApi.getUTF8Text());
+
 
         baseApi.clear();
         baseApi.end();
