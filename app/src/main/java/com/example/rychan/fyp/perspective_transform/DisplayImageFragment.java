@@ -23,7 +23,7 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
     protected static final String ARG_IMAGE_PATH = "image_path";
     protected String imagePath;
 
-    private ImageProcessing mListener;
+    private ImageProcessor mListener;
 
     protected Button button;
     protected ImageView imageView;
@@ -60,16 +60,20 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
 
         imageView = (ImageView) view.findViewById(R.id.imageView);
         Mat srcMat = Imgcodecs.imread(imagePath);
+        processAndDisplay(srcMat);
+        return view;
+    }
+    
+    public void processAndDisplay(Mat srcMat) {
         dstMat = mListener.processImage(srcMat);
         displayImage(dstMat, imageView);
-        return view;
     }
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof ImageProcessing) {
-            mListener = (ImageProcessing) context;
+        if (context instanceof ImageProcessor) {
+            mListener = (ImageProcessor) context;
         } else {
             throw new RuntimeException(context.toString()
                     + " must implement OnButtonClickListener");
@@ -86,7 +90,7 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button:
-                mListener.onFinished(dstMat);
+                mListener.onFinishDisplay(dstMat);
         }
     }
 
@@ -100,9 +104,9 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface ImageProcessing {
+    public interface ImageProcessor {
         Mat processImage(Mat srcMat);
-        void onFinished(Mat dstMat);
+        void onFinishDisplay(Mat dstMat);
     }
 
     public static Mat fitScreen(Mat src, int max) {

@@ -5,6 +5,8 @@ import android.graphics.Bitmap;
 import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ListView;
 
 import com.example.rychan.fyp.R;
@@ -36,12 +38,12 @@ public class Recognition extends AppCompatActivity {
 
         Intent intent = getIntent();
         String receiptPath = intent.getStringExtra("receipt_path");
-        Mat receiptMat = Imgcodecs.imread(receiptPath);
+        Mat receiptMat = Imgcodecs.imread(receiptPath, 0);
 
 
         List<Range> rowRangeList = segmentation(receiptMat);
-        RecognitionAdapter myAdapter = new RecognitionAdapter(this, rowRangeList, receiptMat,
-                textRecognition(receiptMat, rowRangeList));
+        final RecognitionAdapter myAdapter = new RecognitionAdapter(this, textRecognition(receiptMat, rowRangeList), receiptMat);
+
 //
 //        List<Range> rowRangeList = new ArrayList<>();
 //        rowRangeList.add(new Range(0, receiptMat.rows()));
@@ -50,10 +52,56 @@ public class Recognition extends AppCompatActivity {
 
 
         listView.setAdapter(myAdapter);
+
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener(){
+            @Override
+
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id){
+
+                RecognitionResult item = myAdapter.getItem(position);
+                if (item.type == RecognitionResult.TYPE_NULL) {
+                    item.type = RecognitionResult.TYPE_ITEM;
+                    myAdapter.notifyDataSetChanged();
+                }
+            }
+        });
+    }
+
+    private List<Range> segmentation(Mat srcBinary) {
+
+        int width = srcBinary.cols();
+        int height = srcBinary.rows();
+
+        Mat rowSum = new Mat();
+        Core.reduce(srcBinary, rowSum, 1, Core.REDUCE_SUM, CvType.CV_32S);
+        rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
+
+        Mat rowMask = new Mat();
+        Imgproc.threshold(rowSum, rowMask, 250, 255, Imgproc.THRESH_BINARY_INV);
+
+        Mat kernel = new Mat(5, 1, CvType.CV_8UC1, Scalar.all(255));
+        Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_DILATE, kernel);
+
+        Mat mask = new Mat(height, width, CvType.CV_8UC1);
+        for (int i = 0; i < width; ++i) {
+            rowMask.copyTo(mask.col(i));
+        }
+
+        List<MatOfPoint> contour = new ArrayList<>();
+        Imgproc.findContours(mask, contour, new Mat(), Imgproc.RETR_EXTERNAL, Imgproc.CHAIN_APPROX_NONE);
+
+        List<Range> rowRangeList = new ArrayList<>();
+        for (MatOfPoint c: contour) {
+            Rect rect = Imgproc.boundingRect(c);
+            rowRangeList.add(new Range(rect.y, rect.y + rect.height));
+        }
+        Collections.reverse(rowRangeList);
+
+        return rowRangeList;
     }
 
 
-    private List<Range> segmentation(Mat srcBGR) {
+    private List<Range> segmentation1(Mat srcBGR) {
 
         int width = srcBGR.cols();
         int height = srcBGR.rows();
@@ -96,11 +144,11 @@ public class Recognition extends AppCompatActivity {
     }
 
 
-    private List<String> textRecognition(Mat srcImage, List<Range> rowRangeList){
-        List<String> resultList = new ArrayList<>();
+    private List<RecognitionResult> textRecognition(Mat srcImage, List<Range> rowRangeList){
+        List<RecognitionResult> resultList = new ArrayList<>();
 
         TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng+chi_tra");
+        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
         baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
 
         for (Range r: rowRangeList) {
@@ -108,7 +156,8 @@ public class Recognition extends AppCompatActivity {
             Utils.matToBitmap(srcImage.rowRange(r), bm);
 
             baseApi.setImage(bm);
-            resultList.add(baseApi.getUTF8Text());
+            String result = baseApi.getUTF8Text();
+            resultList.add(new RecognitionResult(r, result));
         }
 
         baseApi.clear();

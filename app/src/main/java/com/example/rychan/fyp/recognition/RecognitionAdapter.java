@@ -13,7 +13,6 @@ import com.example.rychan.fyp.perspective_transform.DisplayImageFragment;
 import com.example.rychan.fyp.R;
 
 import org.opencv.core.Mat;
-import org.opencv.core.Range;
 
 import java.util.List;
 
@@ -21,32 +20,63 @@ import java.util.List;
  * Created by rychan on 17年2月12日.
  */
 
-public class RecognitionAdapter extends ArrayAdapter<Range>{
+public class RecognitionAdapter extends ArrayAdapter<RecognitionResult>{
 
     private Mat receiptImage;
-    private List<String> resultList;
 
-    public RecognitionAdapter(Context context, List<Range> rangeList, Mat srcImage, List<String> resultList) {
-        super(context, R.layout.list_recognition, rangeList);
+    public RecognitionAdapter(Context context, List<RecognitionResult> resultList, Mat srcImage) {
+        super(context, R.layout.listitem_null, resultList);
         this.receiptImage = srcImage;
-        this.resultList = resultList;
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return getItem(position).type;
+    }
+
+    @Override
+    public int getViewTypeCount() {
+        return 2;
     }
 
     @Override
     public @NonNull View getView(int position, View convertView, @NonNull ViewGroup parent) {
 
-        Range range = getItem(position);
+        ViewHolder holder;
+        int type = getItemViewType(position);
 
         if (convertView == null) {
-            convertView = LayoutInflater.from(getContext()).inflate(R.layout.list_recognition, parent, false);
+            holder = new ViewHolder();
+            switch (type) {
+                case RecognitionResult.TYPE_NULL:
+                    convertView = LayoutInflater.from(getContext()).inflate(R.layout.listitem_null, parent, false);
+                    holder.imageView = (ImageView) convertView.findViewById(R.id.image);
+                    holder.result1 = (TextView) convertView.findViewById(R.id.result);
+                    holder.result2 = null;
+                    break;
+                case RecognitionResult.TYPE_ITEM:
+                    convertView = LayoutInflater.from(getContext()).inflate(R.layout.listitem_item, parent, false);
+                    holder.imageView = (ImageView) convertView.findViewById(R.id.image);
+                    holder.result1 = (TextView) convertView.findViewById(R.id.itemName);
+                    holder.result2 = (TextView) convertView.findViewById(R.id.itemPrice);
+                    break;
+            }
+            convertView.setTag(holder);
+        } else {
+            holder = (ViewHolder) convertView.getTag();
         }
 
-        ImageView imageView = (ImageView) convertView.findViewById(R.id.image);
-        DisplayImageFragment.displayImage(receiptImage.rowRange(range), imageView);
-
-        TextView textView = (TextView) convertView.findViewById(R.id.recognition_result);
-        textView.setText(resultList.get(position));
-
+        DisplayImageFragment.displayImage(receiptImage.rowRange(getItem(position).rowRange), holder.imageView);
+        holder.result1.setText(getItem(position).result1);
+        if (holder.result2 != null) {
+            holder.result2.setText(getItem(position).result2);
+        }
         return convertView;
+    }
+
+    private static class ViewHolder {
+        private ImageView imageView;
+        private TextView result1;
+        private TextView result2;
     }
 }

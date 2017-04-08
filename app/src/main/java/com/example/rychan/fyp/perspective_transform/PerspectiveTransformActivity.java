@@ -26,7 +26,7 @@ import java.util.List;
 
 
 public class PerspectiveTransformActivity extends AppCompatActivity implements
-        HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessing {
+        HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor {
 
     private Bundle args;
 
@@ -40,7 +40,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
         Intent intent = getIntent();
         args = new Bundle();
-        args.putString(HoughResultFragment.ARG_IMAGE_PATH, intent.getStringExtra("photo_path"));
+        args.putString(DisplayImageFragment.ARG_IMAGE_PATH, intent.getStringExtra("photo_path"));
 
         // Check that the activity is using the layout version with
         // the fragment_container FrameLayout
@@ -196,7 +196,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         pointListResult = pointList;
         frameSizeResult = frameSize;
 
-        // Create fragment and give it an argument specifying the article it should show
+        // Create new fragment
         DisplayImageFragment newFragment = new DisplayImageFragment();
         newFragment.setArguments(args);
 
@@ -217,11 +217,11 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onFinished(Mat dstMat) {
+    public void onFinishDisplay(Mat dstMat) {
         File photoFile = null;
         String receiptPath = "";
         try {
-            photoFile = MainActivity.createImageFile("Receipt", getExternalFilesDir("Receipts"));
+            photoFile = MainActivity.createImageFile("Receipt", ".pbm", getExternalFilesDir("Receipts"));
             receiptPath = photoFile.getAbsolutePath();
         } catch (IOException ex) {
             // Error occurred while creating the File
@@ -277,8 +277,19 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         // apply perspective transformation
         Imgproc.warpPerspective(srcBGR, dstBGR, transMat, dstBGR.size());
 
+        // eliminate boundary
         int xMargin = (int) Math.ceil(xScale * 2);
         int yMargin = (int) Math.ceil(yScale * 2);
-        return dstBGR.submat(yMargin, avgHeight - yMargin, xMargin, avgWidth - xMargin);
+        Mat subMat = dstBGR.submat(yMargin, avgHeight - yMargin, xMargin, avgWidth - xMargin);
+
+        // convert to grayscale image
+        Mat dst = new Mat();
+        Imgproc.cvtColor(subMat, dst, Imgproc.COLOR_BGR2GRAY);
+
+        //Imgproc.threshold(gray, dst, 0, 255, Imgproc.THRESH_OTSU);
+
+        Imgproc.medianBlur(dst, dst, 7);
+        Imgproc.adaptiveThreshold(dst, dst, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 21, 3);
+        return dst;
     }
 }

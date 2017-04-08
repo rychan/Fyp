@@ -131,14 +131,14 @@ public class MainActivity extends AppCompatActivity {
 //    }
 
 
-    static public File createImageFile(String type, File storageDir) throws IOException {
+    static public File createImageFile(String type, String format, File storageDir) throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
         String imageFileName = type + "_" + timeStamp + "_";
 //        File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         return File.createTempFile(
                 imageFileName,  /* prefix */
-                ".jpg",         /* suffix */
+                format,         /* suffix */
                 storageDir      /* directory */
         );
     }
@@ -150,7 +150,7 @@ public class MainActivity extends AppCompatActivity {
             // Create the File where the photo should go
             File photoFile = null;
             try {
-                photoFile = createImageFile("Photo", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+                photoFile = createImageFile("Photo", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
 
                 // Save the file path for loading
                 photoPath = photoFile.getAbsolutePath();
@@ -324,7 +324,7 @@ public class MainActivity extends AppCompatActivity {
                         // Create the File where the photo should go
                         File photoFile = null;
                         try {
-                            photoFile = createImageFile("Receipt", getExternalFilesDir("Receipts"));
+                            photoFile = createImageFile("Receipt", ".jpg", getExternalFilesDir("Receipts"));
                             receiptPath = photoFile.getAbsolutePath();
                         } catch (IOException ex) {
                             // Error occurred while creating the File
