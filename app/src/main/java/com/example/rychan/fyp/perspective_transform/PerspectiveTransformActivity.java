@@ -3,12 +3,15 @@ package com.example.rychan.fyp.perspective_transform;
 import android.content.Intent;
 import android.graphics.PointF;
 import android.net.Uri;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.KeyEvent;
 
 import com.example.rychan.fyp.MainActivity;
 import com.example.rychan.fyp.R;
+import com.example.rychan.fyp.perspective_transform.binarization.BinarizationSettingDialog;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -26,12 +29,17 @@ import java.util.List;
 
 
 public class PerspectiveTransformActivity extends AppCompatActivity implements
-        HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor {
+        HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor,
+        BinarizationSettingDialog.DialogListener {
 
     private Bundle args;
 
     private List<PointF> pointListResult;
     private Size frameSizeResult;
+
+    private int blurBlockSize = 5;
+    private int thresholdBlockSize = 75;
+    private double thresholdConstant = 2.4;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,6 +71,46 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         }
     }
 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event)  {
+        if ( keyCode == KeyEvent.KEYCODE_MENU ) {
+
+            // perform your desired action here
+            DialogFragment dialog = new BinarizationSettingDialog();
+            dialog.show(getSupportFragmentManager(), "BinarizationSettingDialog");
+
+            // return 'true' to prevent further propagation of the key event
+            return true;
+        }
+
+        // let the system handle all other key events
+        return super.onKeyDown(keyCode, event);
+    }
+
+    @Override
+    public int getBlurBlockSize() {
+        return blurBlockSize;
+    }
+
+    @Override
+    public int getThresholdBlockSize() {
+        return thresholdBlockSize;
+    }
+
+    @Override
+    public double getThresholdConstant() {
+        return thresholdConstant;
+    }
+
+    @Override
+    public void onDialogPositiveClick(BinarizationSettingDialog dialog) {
+        this.blurBlockSize = dialog.blurBlockSize.getIntProgress();
+        this.thresholdBlockSize = dialog.thresholdBlockSize.getIntProgress();
+        this.thresholdConstant = dialog.thresholdConstant.getDoubleProgress();
+    }
+
+
+
     private PointF scale2PointF(Point cvPoint, Point scale) {
         return new PointF((float) ((cvPoint.x + 0.5) * scale.x), (float) ((cvPoint.y + 0.5) * scale.y));
     }
@@ -70,6 +118,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     private Point pointF2cvPoint(PointF pointF) {
         return new Point(pointF.x, pointF.y);
     }
+
 
     class Line {
         Point pt1;
@@ -278,8 +327,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         Imgproc.warpPerspective(srcBGR, dstBGR, transMat, dstBGR.size());
 
         // eliminate boundary
-        int xMargin = (int) Math.ceil(xScale * 2);
-        int yMargin = (int) Math.ceil(yScale * 2);
+        int xMargin = (int) Math.ceil(xScale * 3);
+        int yMargin = (int) Math.ceil(yScale * 3);
         Mat subMat = dstBGR.submat(yMargin, avgHeight - yMargin, xMargin, avgWidth - xMargin);
 
         // convert to grayscale image
@@ -288,8 +337,9 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
         //Imgproc.threshold(gray, dst, 0, 255, Imgproc.THRESH_OTSU);
 
-        Imgproc.medianBlur(dst, dst, 7);
-        Imgproc.adaptiveThreshold(dst, dst, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 21, 3);
+        Imgproc.medianBlur(dst, dst, blurBlockSize);
+        Imgproc.adaptiveThreshold(dst, dst, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, thresholdBlockSize, thresholdConstant);
+
         return dst;
     }
 }
