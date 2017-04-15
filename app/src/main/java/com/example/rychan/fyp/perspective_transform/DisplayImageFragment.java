@@ -28,6 +28,7 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
     protected Button button;
     protected ImageView imageView;
 
+    private Mat srcMat;
     private Mat dstMat;
 
     public DisplayImageFragment() {
@@ -59,14 +60,18 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
         button.setOnClickListener(this);
 
         imageView = (ImageView) view.findViewById(R.id.imageView);
-        Mat srcMat = Imgcodecs.imread(imagePath);
+        srcMat = Imgcodecs.imread(imagePath);
         processAndDisplay(srcMat);
         return view;
     }
-    
+
     public void processAndDisplay(Mat srcMat) {
         dstMat = mListener.processImage(srcMat);
         displayImage(dstMat, imageView);
+    }
+
+    public void processAndDisplay() {
+        processAndDisplay(srcMat);
     }
 
     @Override

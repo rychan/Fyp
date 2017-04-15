@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.graphics.PointF;
 import android.net.Uri;
 import android.support.v4.app.DialogFragment;
+import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -38,8 +39,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     private Size frameSizeResult;
 
     private int blurBlockSize = 5;
-    private int thresholdBlockSize = 75;
-    private double thresholdConstant = 2.4;
+    private int thresholdBlockSize = 151;
+    private double thresholdConstant = 6.0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,8 +108,12 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         this.blurBlockSize = dialog.blurBlockSize.getIntProgress();
         this.thresholdBlockSize = dialog.thresholdBlockSize.getIntProgress();
         this.thresholdConstant = dialog.thresholdConstant.getDoubleProgress();
-    }
 
+        Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+        if (f != null) {
+            ((DisplayImageFragment) f).processAndDisplay();
+        }
+    }
 
 
     private PointF scale2PointF(Point cvPoint, Point scale) {
@@ -253,7 +258,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
         // Replace whatever is in the fragment_container view with this fragment,
         // and add the transaction to the back stack so the user can navigate back
-        transaction.replace(R.id.fragment_container, newFragment);
+        transaction.replace(R.id.fragment_container, newFragment, "RESULT_FRAGMENT");
         transaction.addToBackStack(null);
 
         // Commit the transaction

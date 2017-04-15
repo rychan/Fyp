@@ -6,8 +6,8 @@
     android:layout_height="match_parent"
     android:weightSum="1">
 
-    <ImageView
-        android:id="@+id/imageView"
+    <ListView
+        android:id="@+id/listView"
         android:layout_width="match_parent"
         android:layout_height="0px"
         android:layout_gravity="fill"

@@ -9,6 +9,8 @@ import android.widget.TextView;
 
 import com.example.rychan.fyp.R;
 
+import java.math.BigDecimal;
+import java.math.MathContext;
 
 /**
  * Created by rycha on 10/4/2017.
@@ -16,8 +18,8 @@ import com.example.rychan.fyp.R;
 
 public class SeekBarGroup extends LinearLayout implements SeekBar.OnSeekBarChangeListener {
 
-    private double min;
-    private double interval;
+    private BigDecimal min;
+    private BigDecimal interval;
     private SeekBar seekBar;
 
     private TextView title;
@@ -49,33 +51,40 @@ public class SeekBarGroup extends LinearLayout implements SeekBar.OnSeekBarChang
 
     public void setValue(String s, int min, int max, int interval, int init) {
         title.setText(s);
-        this.min = min;
-        this.interval = interval;
-        seekBar.setMax((max - min) / interval);
-        seekBar.setProgress((init - min) / interval);
-        value.setText(String.valueOf(getDoubleProgress()));
+        this.min = new BigDecimal(min);
+        this.interval = new BigDecimal(interval);
+        setSeekBarValue(new BigDecimal(max), new BigDecimal(init));
     }
 
     public void setValue(String s, double min, double max, double interval, double init) {
         title.setText(s);
-        this.min = min;
-        this.interval = interval;
-        seekBar.setMax((int) ((max - min) / interval));
-        seekBar.setProgress((int) ((init - min) / interval));
-        value.setText(String.valueOf(getDoubleProgress()));
+        MathContext mathContext = new MathContext(1);
+        this.min = new BigDecimal(min, mathContext);
+        this.interval = new BigDecimal(interval, mathContext);
+        setSeekBarValue(new BigDecimal(max, mathContext), new BigDecimal(init, mathContext));
+    }
+
+    private void setSeekBarValue(BigDecimal max, BigDecimal init) {
+        seekBar.setMax(max.subtract(min).divide(interval, BigDecimal.ROUND_HALF_UP).intValue());
+        seekBar.setProgress(init.subtract(min).divide(interval, BigDecimal.ROUND_HALF_UP).intValue());
+        value.setText(getStringProgress());
     }
 
     public int getIntProgress() {
-        return seekBar.getProgress() * (int) interval + (int) min;
+        return new BigDecimal(seekBar.getProgress()).multiply(interval).add(min).intValue();
     }
 
     public double getDoubleProgress() {
-        return seekBar.getProgress() * interval + min;
+        return new BigDecimal(seekBar.getProgress()).multiply(interval).add(min).longValue();
+    }
+
+    public String getStringProgress() {
+        return new BigDecimal(seekBar.getProgress()).multiply(interval).add(min).toString();
     }
 
     @Override
     public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-        value.setText(String.valueOf(getDoubleProgress()));
+        value.setText(getStringProgress());
     }
 
     @Override

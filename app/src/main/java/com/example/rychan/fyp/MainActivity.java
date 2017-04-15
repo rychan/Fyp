@@ -7,14 +7,17 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v4.content.FileProvider;
+import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListView;
 
 import com.example.rychan.fyp.perspective_transform.DisplayImageFragment;
 import com.example.rychan.fyp.perspective_transform.PerspectiveTransformActivity;
+import com.example.rychan.fyp.provider.ReceiptContract;
 import com.example.rychan.fyp.recognition.Recognition;
 
 import org.opencv.android.BaseLoaderCallback;
@@ -90,7 +93,29 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.display_image);
 
-        imageView = (ImageView) findViewById(R.id.imageView);
+        Cursor cursor = getContentResolver().query(ReceiptContract.ReceiptProvider.ITEM_CONTENT_URI,
+                null, null, null, null);
+        SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(
+                this,
+                R.layout.listitem_item_detail,
+                cursor,
+                new String[]{
+                        ReceiptContract.ItemEntry._ID,
+                        ReceiptContract.ItemEntry.COLUMN_ITEM,
+                        ReceiptContract.ItemEntry.COLUMN_PRICE,
+                        ReceiptContract.ItemEntry.COLUMN_RECEIPT_ID,
+                        ReceiptContract.ReceiptEntry.COLUMN_SHOP,
+                        ReceiptContract.ReceiptEntry.COLUMN_DATE,
+                        ReceiptContract.ReceiptEntry.COLUMN_TOTAL,
+                        ReceiptContract.ReceiptEntry.COLUMN_FILE},
+                new int[]{
+                        R.id.textView, R.id.textView2, R.id.textView3, R.id.textView4,
+                        R.id.textView5, R.id.textView6, R.id.textView7, R.id.textView8,
+                }
+        );
+        ListView listView = (ListView) findViewById(R.id.listView);
+        listView.setAdapter(simpleCursorAdapter);
+        //imageView = (ImageView) findViewById(R.id.imageView);
         button = (Button) findViewById(R.id.button);
         setButtonListener();
     }
@@ -246,7 +271,7 @@ public class MainActivity extends AppCompatActivity {
                     Mat mCanny = new Mat();
                     mat2 = pTransform(mat1, mCanny);
 
-                    DisplayImageFragment.displayImage(mCanny, imageView);
+                    //DisplayImageFragment.displayImage(mCanny, imageView);
                     buttonState = STATE_HOUGH_TRANSFORM;
                     button.setText(STATE_LABEL[buttonState]);
                 }
@@ -310,12 +335,12 @@ public class MainActivity extends AppCompatActivity {
 
                     case STATE_HOUGH_TRANSFORM:
                         dispatchPerspectiveTransformIntent(photoPath);
-                        DisplayImageFragment.displayImage(mat1, imageView);
+                        //DisplayImageFragment.displayImage(mat1, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
                     case STATE_PERSPECTIVE_TRANSFORM:
-                        DisplayImageFragment.displayImage(mat2, imageView);
+                        //DisplayImageFragment.displayImage(mat2, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
@@ -338,12 +363,12 @@ public class MainActivity extends AppCompatActivity {
                         Mat mat4 = segmentation(mat2);
 
                         //mat2 = mat3;
-                        DisplayImageFragment.displayImage(mat4, imageView);
+                        //DisplayImageFragment.displayImage(mat4, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 
                     case STATE_TEXT_DETECTION:
-                        DisplayImageFragment.displayImage(mat2, imageView);
+                        //DisplayImageFragment.displayImage(mat2, imageView);
                         button.setText(STATE_LABEL[++buttonState]);
                         break;
 

@@ -35,15 +35,15 @@ public class BinarizationSettingDialog extends DialogFragment {
         blurBlockSize.setValue("Blur Block Size", 3, 11, 2, mListener.getBlurBlockSize());
 
         thresholdBlockSize = (SeekBarGroup) v.findViewById(R.id.thresholdBlockSize);
-        thresholdBlockSize.setValue("Adaptive Thresholding Block Size", 11, 99, 2, mListener.getThresholdBlockSize());
+        thresholdBlockSize.setValue("Adaptive Thresholding Block Size", 11, 199, 2, mListener.getThresholdBlockSize());
 
         thresholdConstant = (SeekBarGroup) v.findViewById(R.id.thresholdConstant);
-        thresholdConstant.setValue("Adaptive Thresholding Constant", 0, 4, 0.1, mListener.getThresholdConstant());
+        thresholdConstant.setValue("Adaptive Thresholding Constant", 0, 8, 0.1, mListener.getThresholdConstant());
 
         // Inflate and set the layout for the dialog
         // Pass null as the parent view because its going in the dialog layout
-        builder.setView(v)
-                // Add action buttons
+        builder.setTitle("Binarization Setting")
+                .setView(v)
                 .setPositiveButton("OK", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
