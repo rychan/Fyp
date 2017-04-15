@@ -1,7 +1,9 @@
 package com.example.rychan.fyp.perspective_transform;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.PointF;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -47,30 +49,19 @@ public class HoughResultFragment extends DisplayImageFragment {
         button = (Button) view.findViewById(R.id.button);
         button.setOnClickListener(this);
 
-        imageView = (ImageView) view.findViewById(R.id.imageView);
-        final Mat srcMat = Imgcodecs.imread(imagePath);
+        imageView = (ImageView) view.findViewById(R.id.image_view);
+        final Mat src = Imgcodecs.imread(imagePath);
 
-        regionSelector = (RegionSelector) view.findViewById(R.id.regionSelector);
+        regionSelector = (RegionSelector) view.findViewById(R.id.region_selector);
 
-        displayImage(srcMat, imageView);
+        displayImage(src, imageView);
         ViewTreeObserver vto = imageView.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 imageView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                int padding = (int) getResources().getDimension(R.dimen.scanPadding);
-                int frameWidth = imageView.getWidth() - 2 * padding;
-                int frameHeight = imageView.getHeight() - 2 * padding;
-                frameSize = new Size(frameWidth, frameHeight);
-
-                List<PointF> pointList = mListener.houghTransform(srcMat, frameSize);
-                regionSelector.setPoints(pointList, frameWidth, frameHeight);
-                regionSelector.setVisibility(View.VISIBLE);
-
-                FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
-                        frameWidth + 2 * padding, frameHeight + 2 * padding);
-                layoutParams.gravity = Gravity.CENTER;
-                regionSelector.setLayoutParams(layoutParams);
+                houghTransformTask houghTransformTask = new houghTransformTask(getContext(), src);
+                houghTransformTask.execute();
             }
         });
         return view;
@@ -114,5 +105,56 @@ public class HoughResultFragment extends DisplayImageFragment {
     public interface HoughTransform {
         List<PointF> houghTransform(Mat srcMat, Size frameSize);
         void onHoughResult(List<PointF> pointList, Size frameSize);
+    }
+
+
+    private class houghTransformTask extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog progressDialog;
+        private Mat src;
+
+        private List<PointF> pointList;
+        private int padding;
+        private int frameWidth;
+        private int frameHeight;
+
+        houghTransformTask(Context context, Mat src) {
+            this.progressDialog = new ProgressDialog(context);
+            this.src = src;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog.setMessage("Processing...");
+            progressDialog.setIndeterminate(false);
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+
+            padding = (int) getResources().getDimension(R.dimen.scanPadding);
+            frameWidth = imageView.getWidth() - 2 * padding;
+            frameHeight = imageView.getHeight() - 2 * padding;
+            frameSize = new Size(frameWidth, frameHeight);
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            pointList = mListener.houghTransform(src, frameSize);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            progressDialog.dismiss();
+
+            regionSelector.setPoints(pointList, frameWidth, frameHeight);
+            regionSelector.setVisibility(View.VISIBLE);
+
+            FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+                    frameWidth + 2 * padding, frameHeight + 2 * padding);
+            layoutParams.gravity = Gravity.CENTER;
+            regionSelector.setLayoutParams(layoutParams);
+        }
     }
 }

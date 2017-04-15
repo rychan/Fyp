@@ -1,7 +1,5 @@
 package com.example.rychan.fyp.recognition;
 
-import android.util.Log;
-
 import org.opencv.core.Mat;
 import org.opencv.core.Range;
 

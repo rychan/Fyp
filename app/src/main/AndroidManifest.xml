@@ -41,9 +41,8 @@
             </intent-filter>
         </activity>
         <activity android:name=".perspective_transform.PerspectiveTransformActivity"/>
-        <activity android:name=".recognition.Recognition"
+        <activity android:name=".recognition.RecognitionActivity"
             android:windowSoftInputMode="adjustPan"/>
-        <activity android:name=".Camera" />
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -56,7 +55,7 @@
         </provider>
 
         <provider
-            android:name=".provider.ReceiptDbProvider"
+            android:name=".provider.DatabaseProvider"
             android:authorities="com.example.rychan.fyp.provider"
             android:enabled="true"
             android:exported="true"/>

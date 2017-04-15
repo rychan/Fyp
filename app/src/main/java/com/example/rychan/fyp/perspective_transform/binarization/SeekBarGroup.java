@@ -45,7 +45,7 @@ public class SeekBarGroup extends LinearLayout implements SeekBar.OnSeekBarChang
         title = (TextView) findViewById(R.id.title);
         value = (TextView) findViewById(R.id.value);
 
-        seekBar = (SeekBar) findViewById(R.id.seekBar);
+        seekBar = (SeekBar) findViewById(R.id.seekbar);
         seekBar.setOnSeekBarChangeListener(this);
     }
 
@@ -58,7 +58,7 @@ public class SeekBarGroup extends LinearLayout implements SeekBar.OnSeekBarChang
 
     public void setValue(String s, double min, double max, double interval, double init) {
         title.setText(s);
-        MathContext mathContext = new MathContext(1);
+        MathContext mathContext = new MathContext(2);
         this.min = new BigDecimal(min, mathContext);
         this.interval = new BigDecimal(interval, mathContext);
         setSeekBarValue(new BigDecimal(max, mathContext), new BigDecimal(init, mathContext));
@@ -72,10 +72,6 @@ public class SeekBarGroup extends LinearLayout implements SeekBar.OnSeekBarChang
 
     public int getIntProgress() {
         return new BigDecimal(seekBar.getProgress()).multiply(interval).add(min).intValue();
-    }
-
-    public double getDoubleProgress() {
-        return new BigDecimal(seekBar.getProgress()).multiply(interval).add(min).longValue();
     }
 
     public String getStringProgress() {

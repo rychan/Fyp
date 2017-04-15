@@ -1,7 +1,6 @@
 package com.example.rychan.fyp.provider;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
@@ -16,13 +15,13 @@ import android.text.TextUtils;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static com.example.rychan.fyp.provider.ReceiptContract.*;
+import static com.example.rychan.fyp.provider.Contract.*;
 
 /**
  * Created by rychan on 17年4月15日.
  */
 
-public class ReceiptDbProvider extends ContentProvider {
+public class DatabaseProvider extends ContentProvider {
     // Used for the UriMacher
     private static final int RECEIPT = 1;
     private static final int RECEIPT_ID = 2;

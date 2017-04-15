@@ -1,7 +1,9 @@
 package com.example.rychan.fyp.perspective_transform;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
@@ -23,13 +25,13 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
     protected static final String ARG_IMAGE_PATH = "image_path";
     protected String imagePath;
 
-    private ImageProcessor mListener;
-
     protected Button button;
     protected ImageView imageView;
 
-    private Mat srcMat;
-    private Mat dstMat;
+    private ImageProcessor mListener;
+
+    private Mat src;
+    private Mat dst;
 
     public DisplayImageFragment() {
         // Required empty public constructor
@@ -59,19 +61,19 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
         button = (Button) view.findViewById(R.id.button);
         button.setOnClickListener(this);
 
-        imageView = (ImageView) view.findViewById(R.id.imageView);
-        srcMat = Imgcodecs.imread(imagePath);
-        processAndDisplay(srcMat);
+        imageView = (ImageView) view.findViewById(R.id.image_view);
+        src = Imgcodecs.imread(imagePath);
+        processAndDisplay(src);
         return view;
     }
 
     public void processAndDisplay(Mat srcMat) {
-        dstMat = mListener.processImage(srcMat);
-        displayImage(dstMat, imageView);
+        ImageProcessingTask imageProcessingTask = new ImageProcessingTask(getContext(), srcMat);
+        imageProcessingTask.execute();
     }
 
     public void processAndDisplay() {
-        processAndDisplay(srcMat);
+        processAndDisplay(src);
     }
 
     @Override
@@ -95,7 +97,7 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button:
-                mListener.onFinishDisplay(dstMat);
+                mListener.onFinishDisplay(dst);
         }
     }
 
@@ -113,6 +115,41 @@ public class DisplayImageFragment extends Fragment implements View.OnClickListen
         Mat processImage(Mat srcMat);
         void onFinishDisplay(Mat dstMat);
     }
+
+
+    private class ImageProcessingTask extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog progressDialog;
+        private Mat src;
+
+        ImageProcessingTask(Context context, Mat src) {
+            this.progressDialog = new ProgressDialog(context);
+            this.src = src;
+        }
+
+        @Override
+        protected void onPreExecute() {
+            super.onPreExecute();
+            progressDialog.setMessage("Processing...");
+            progressDialog.setIndeterminate(false);
+            progressDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            progressDialog.setCancelable(false);
+            progressDialog.show();
+        }
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+            dst = mListener.processImage(src);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid) {
+            super.onPostExecute(aVoid);
+            progressDialog.dismiss();
+            displayImage(dst, imageView);
+        }
+    }
+
 
     public static Mat fitScreen(Mat src, int max) {
         Mat dst = new Mat();

@@ -164,9 +164,22 @@ public class RegionSelector extends FrameLayout {
     @Override
     protected void dispatchDraw(Canvas canvas) {
         super.dispatchDraw(canvas);
-        canvas.drawLine(pointer1.getX() + (pointer1.getWidth() / 2), pointer1.getY() + (pointer1.getHeight() / 2), pointer3.getX() + (pointer3.getWidth() / 2), pointer3.getY() + (pointer3.getHeight() / 2), paint);
-        canvas.drawLine(pointer1.getX() + (pointer1.getWidth() / 2), pointer1.getY() + (pointer1.getHeight() / 2), pointer2.getX() + (pointer2.getWidth() / 2), pointer2.getY() + (pointer2.getHeight() / 2), paint);
-        canvas.drawLine(pointer2.getX() + (pointer2.getWidth() / 2), pointer2.getY() + (pointer2.getHeight() / 2), pointer4.getX() + (pointer4.getWidth() / 2), pointer4.getY() + (pointer4.getHeight() / 2), paint);
-        canvas.drawLine(pointer3.getX() + (pointer3.getWidth() / 2), pointer3.getY() + (pointer3.getHeight() / 2), pointer4.getX() + (pointer4.getWidth() / 2), pointer4.getY() + (pointer4.getHeight() / 2), paint);
+        canvas.drawLine(pointer1.getX() + (pointer1.getWidth() / 2),
+                pointer1.getY() + (pointer1.getHeight() / 2),
+                pointer3.getX() + (pointer3.getWidth() / 2),
+                pointer3.getY() + (pointer3.getHeight() / 2), paint);
+        canvas.drawLine(pointer1.getX() + (pointer1.getWidth() / 2),
+                pointer1.getY() + (pointer1.getHeight() / 2),
+                pointer2.getX() + (pointer2.getWidth() / 2),
+                pointer2.getY() + (pointer2.getHeight() / 2), paint);
+        canvas.drawLine(pointer2.getX() + (pointer2.getWidth() / 2),
+                pointer2.getY() + (pointer2.getHeight() / 2),
+                pointer4.getX() + (pointer4.getWidth() / 2),
+                pointer4.getY() + (pointer4.getHeight() / 2),
+                paint);
+        canvas.drawLine(pointer3.getX() + (pointer3.getWidth() / 2),
+                pointer3.getY() + (pointer3.getHeight() / 2),
+                pointer4.getX() + (pointer4.getWidth() / 2),
+                pointer4.getY() + (pointer4.getHeight() / 2), paint);
     }
 }

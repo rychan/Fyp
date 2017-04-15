@@ -14,7 +14,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.example.rychan.fyp.R;
-import com.example.rychan.fyp.provider.ReceiptContract.*;
+import com.example.rychan.fyp.provider.Contract.*;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.opencv.android.Utils;
@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Observable;
 import java.util.Observer;
 
-public class Recognition extends AppCompatActivity implements Observer, View.OnClickListener {
+public class RecognitionActivity extends AppCompatActivity implements Observer, View.OnClickListener {
     private RecognitionResult recognitionResult;
     String receiptPath;
     private TextView totalText;
@@ -241,5 +241,9 @@ public class Recognition extends AppCompatActivity implements Observer, View.OnC
                 getContentResolver().insert(ReceiptProvider.ITEM_CONTENT_URI, itemValue);
             }
         }
+
+        Intent data = new Intent();
+        setResult(RESULT_OK, data);
+        finish();
     }
 }

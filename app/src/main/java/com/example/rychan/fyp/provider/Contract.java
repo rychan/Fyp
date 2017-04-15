@@ -7,9 +7,9 @@ import android.provider.BaseColumns;
  * Created by rychan on 17年4月15日.
  */
 
-public final class ReceiptContract {
+public final class Contract {
 
-    public ReceiptContract(){}
+    public Contract(){}
 
     public static abstract class ReceiptEntry implements BaseColumns {
 

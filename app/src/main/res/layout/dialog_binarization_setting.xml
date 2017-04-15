@@ -1,21 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
+    android:layout_height="wrap_content"
+    tools:context="com.example.rychan.fyp.perspective_transform.binarization.BinarizationSettingDialog">
 
     <com.example.rychan.fyp.perspective_transform.binarization.SeekBarGroup
-        android:id="@+id/blurBlockSize"
+        android:id="@+id/blur_block_size_seekbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <com.example.rychan.fyp.perspective_transform.binarization.SeekBarGroup
-        android:id="@+id/thresholdBlockSize"
+        android:id="@+id/threshold_block_size_seekbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <com.example.rychan.fyp.perspective_transform.binarization.SeekBarGroup
-        android:id="@+id/thresholdConstant"
+        android:id="@+id/threshold_constant_seekbar"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 

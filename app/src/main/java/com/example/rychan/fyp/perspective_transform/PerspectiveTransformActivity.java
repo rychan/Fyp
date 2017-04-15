@@ -1,8 +1,11 @@
 package com.example.rychan.fyp.perspective_transform;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.PointF;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -38,9 +41,9 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     private List<PointF> pointListResult;
     private Size frameSizeResult;
 
-    private int blurBlockSize = 5;
-    private int thresholdBlockSize = 151;
-    private double thresholdConstant = 6.0;
+    private int blurBlockSize;
+    private int thresholdBlockSize;
+    private double thresholdConstant;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,7 +52,9 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
         Intent intent = getIntent();
         args = new Bundle();
-        args.putString(DisplayImageFragment.ARG_IMAGE_PATH, intent.getStringExtra("photo_path"));
+        args.putString(DisplayImageFragment.ARG_IMAGE_PATH, intent.getStringExtra("receipt_path"));
+
+        getBinarizationSetting();
 
         // Check that the activity is using the layout version with
         // the fragment_container FrameLayout
@@ -72,8 +77,15 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         }
     }
 
+    private void getBinarizationSetting() {
+        SharedPreferences binarizationSetting = getSharedPreferences("BINARIZATION_SETTING", Context.MODE_PRIVATE);
+        blurBlockSize = binarizationSetting.getInt("BLUR_BLOCK_SIZE", 5);
+        thresholdBlockSize = binarizationSetting.getInt("THRESHOLD_BLOCK_SIZE", 101);
+        thresholdConstant = Double.valueOf(binarizationSetting.getString("THRESHOLD_CONSTANT", "6.0"));
+    }
+
     @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event)  {
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
         if ( keyCode == KeyEvent.KEYCODE_MENU ) {
 
             // perform your desired action here
@@ -89,26 +101,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     }
 
     @Override
-    public int getBlurBlockSize() {
-        return blurBlockSize;
-    }
-
-    @Override
-    public int getThresholdBlockSize() {
-        return thresholdBlockSize;
-    }
-
-    @Override
-    public double getThresholdConstant() {
-        return thresholdConstant;
-    }
-
-    @Override
-    public void onDialogPositiveClick(BinarizationSettingDialog dialog) {
-        this.blurBlockSize = dialog.blurBlockSize.getIntProgress();
-        this.thresholdBlockSize = dialog.thresholdBlockSize.getIntProgress();
-        this.thresholdConstant = dialog.thresholdConstant.getDoubleProgress();
-
+    public void onDialogPositiveClick() {
+        getBinarizationSetting();
         Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
         if (f != null) {
             ((DisplayImageFragment) f).processAndDisplay();
@@ -343,7 +337,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         //Imgproc.threshold(gray, dst, 0, 255, Imgproc.THRESH_OTSU);
 
         Imgproc.medianBlur(dst, dst, blurBlockSize);
-        Imgproc.adaptiveThreshold(dst, dst, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, thresholdBlockSize, thresholdConstant);
+        Imgproc.adaptiveThreshold(dst, dst, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C,
+                Imgproc.THRESH_BINARY, thresholdBlockSize, thresholdConstant);
 
         return dst;
     }
