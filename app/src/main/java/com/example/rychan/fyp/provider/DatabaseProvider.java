@@ -50,13 +50,17 @@ public class DatabaseProvider extends ContentProvider {
                     ReceiptEntry.COLUMN_SHOP + " TEXT NOT NULL, " +
                     ReceiptEntry.COLUMN_DATE + " TEXT NOT NULL, " +
                     ReceiptEntry.COLUMN_TOTAL +  " REAL, " +
-                    ReceiptEntry.COLUMN_FILE + " TEXT NOT NULL);";
+                    ReceiptEntry.COLUMN_FILE + " TEXT NOT NULL, " +
+                    ReceiptEntry.COLUMN_STATUS + " INTEGER);";
     static final String CREATE_ITEM_TABLE =
             " CREATE TABLE " + ItemEntry.DATABASE_TABLE_NAME + " (" +
                     ItemEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    ItemEntry.COLUMN_ITEM + " TEXT NOT NULL, " +
+                    ItemEntry.COLUMN_TEXT + " TEXT, " +
                     ItemEntry.COLUMN_PRICE + " REAL, " +
-                    ItemEntry.COLUMN_RECEIPT_ID + " INTEGER);";
+                    ItemEntry.COLUMN_RECEIPT_ID + " INTEGER, " +
+                    ItemEntry.COLUMN_START_ROW + " INTEGER, " +
+                    ItemEntry.COLUMN_END_ROW + " INTEGER, " +
+                    ItemEntry.COLUMN_TYPE + " INTEGER);";
 
     /**
      * Helper class that actually creates and manages
@@ -96,9 +100,6 @@ public class DatabaseProvider extends ContentProvider {
         // Using SQLiteQueryBuilder instead of query() method
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
 
-        // Check if the caller has requested a column which does not exists
-        //checkColumns(projection);
-
         String joinTable =  ItemEntry.DATABASE_TABLE_NAME + " INNER JOIN " +
                 ReceiptEntry.DATABASE_TABLE_NAME + " ON " +
                 ReceiptEntry.DATABASE_TABLE_NAME + "." + ReceiptEntry._ID + " = " +
@@ -107,20 +108,20 @@ public class DatabaseProvider extends ContentProvider {
         switch (uriMatcher.match(uri)) {
             case RECEIPT:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                checkColumns(projection, true);
+                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 break;
             case RECEIPT_ID:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                checkColumns(projection, true);
+                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ReceiptEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             case ITEM:
                 queryBuilder.setTables(joinTable);
-                checkColumns(projection, false);
+                checkColumns(projection, ItemEntry.ALL_COLUMN);
                 break;
             case ITEM_ID:
                 queryBuilder.setTables(joinTable);
-                checkColumns(projection, false);
+                checkColumns(projection, ItemEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ItemEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             default:
@@ -212,7 +213,7 @@ public class DatabaseProvider extends ContentProvider {
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
 
         db = dbHelper.getWritableDatabase();
-        int count = 0;
+        int count;
 
         switch (uriMatcher.match(uri)) {
             case RECEIPT:
@@ -266,29 +267,7 @@ public class DatabaseProvider extends ContentProvider {
         }
     }
 
-    private void checkColumns(String[] projection, boolean type) {
-        String[] available;
-        String[] receiptColumn = {
-                ReceiptEntry._ID,
-                ReceiptEntry.COLUMN_SHOP,
-                ReceiptEntry.COLUMN_DATE,
-                ReceiptEntry.COLUMN_TOTAL,
-                ReceiptEntry.COLUMN_FILE};
-        String[] itemColumn = {
-                ItemEntry._ID,
-                ItemEntry.COLUMN_ITEM,
-                ItemEntry.COLUMN_PRICE,
-                ItemEntry.COLUMN_RECEIPT_ID,
-                ReceiptEntry.COLUMN_SHOP,
-                ReceiptEntry.COLUMN_DATE,
-                ReceiptEntry.COLUMN_TOTAL,
-                ReceiptEntry.COLUMN_FILE};
-
-        if (type) {
-            available = receiptColumn;
-        } else {
-            available = itemColumn;
-        }
+    private void checkColumns(String[] projection, String[] available) {
         if (projection != null) {
             HashSet<String> requestedColumns = new HashSet<String>(Arrays.asList(projection));
             HashSet<String> availableColumns = new HashSet<String>(Arrays.asList(available));

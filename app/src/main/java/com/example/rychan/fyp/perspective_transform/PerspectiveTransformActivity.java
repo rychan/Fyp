@@ -1,11 +1,11 @@
 package com.example.rychan.fyp.perspective_transform;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.PointF;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.os.Environment;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
@@ -17,6 +17,8 @@ import android.view.KeyEvent;
 import com.example.rychan.fyp.MainActivity;
 import com.example.rychan.fyp.R;
 import com.example.rychan.fyp.perspective_transform.binarization.BinarizationSettingDialog;
+import com.example.rychan.fyp.provider.Contract.*;
+import com.example.rychan.fyp.recognition.RecognitionService;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
@@ -27,9 +29,11 @@ import org.opencv.imgproc.Imgproc;
 
 import java.io.File;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.List;
 
 
@@ -282,8 +286,19 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         // Continue only if the File was successfully created
         if (photoFile != null) {
             Imgcodecs.imwrite(receiptPath, dstMat);
+
+            ContentValues values = new ContentValues();
+            values.put(ReceiptEntry.COLUMN_SHOP, "Unknown Shop");
+            values.put(ReceiptEntry.COLUMN_DATE, new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+            values.put(ReceiptEntry.COLUMN_TOTAL, 0);
+            values.put(ReceiptEntry.COLUMN_FILE, receiptPath);
+            values.put(ReceiptEntry.COLUMN_STATUS, ReceiptEntry.STATUS_PROCESSING);
+            Uri uri = getContentResolver().insert(ReceiptProvider.RECEIPT_CONTENT_URI, values);
+            int receiptId = Integer.valueOf(uri.getLastPathSegment());
+
+            RecognitionService.startActionRecognition(this, receiptPath, receiptId);
+
             Intent data = new Intent();
-            data.setData(Uri.parse(receiptPath));
             setResult(RESULT_OK, data);
             finish();
         }

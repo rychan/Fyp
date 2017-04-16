@@ -11,12 +11,13 @@ import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 
+import com.example.rychan.fyp.ReceiptPreview.ReceiptPreviewActivity;
 import com.example.rychan.fyp.perspective_transform.PerspectiveTransformActivity;
 import com.example.rychan.fyp.provider.Contract.*;
-import com.example.rychan.fyp.recognition.RecognitionActivity;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -46,23 +47,41 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Cursor cursor = getContentResolver().query(ReceiptProvider.ITEM_CONTENT_URI,
-                null, null, null, null);
+        final Cursor cursor = getContentResolver().query(ReceiptProvider.RECEIPT_CONTENT_URI,
+                null, null, null, ReceiptEntry._ID + " DESC");
+
         SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(
                 this,
-                R.layout.listitem_item_detail,
+                R.layout.listitem_main_receipt,
                 cursor,
                 new String[]{
-                        ReceiptEntry.COLUMN_SHOP,
                         ReceiptEntry.COLUMN_DATE,
-                        ItemEntry.COLUMN_ITEM,
-                        ItemEntry.COLUMN_PRICE},
+                        ReceiptEntry.COLUMN_STATUS,
+                        ReceiptEntry.COLUMN_SHOP,
+                        ReceiptEntry.COLUMN_TOTAL},
                 new int[]{
                         R.id.textView, R.id.textView2, R.id.textView3, R.id.textView4,
                 }
         );
+
         ListView listView = (ListView) findViewById(R.id.list_view);
         listView.setAdapter(simpleCursorAdapter);
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                if (cursor.moveToPosition(i)) {
+                    if (cursor.getInt(cursor.getColumnIndex(ReceiptEntry.COLUMN_STATUS)) != ReceiptEntry.STATUS_PROCESSING) {
+                        int receiptId = cursor.getInt(cursor.getColumnIndex(ReceiptEntry._ID));
+                        String shop = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_SHOP));
+                        String date = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_DATE));
+                        double total = cursor.getDouble(cursor.getColumnIndex(ReceiptEntry.COLUMN_TOTAL));
+                        String receiptPath = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_FILE));
+
+                        dispatchReceiptIntent(receiptId, shop, date, total, receiptPath);
+                    }
+                }
+            }
+        });
         Button galleryButton = (Button) findViewById(R.id.gallery_button);
         galleryButton.setOnClickListener(this);
         Button cameraButton = (Button) findViewById(R.id.camera_button);
@@ -134,9 +153,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 break;
 
             case REQUEST_PERSPECTIVE_TRANSFORM:
-                if (resultCode == RESULT_OK && data != null) {
-                    dispatchRecognitionIntent(data.getData().toString());
-                }
                 break;
 
             case REQUEST_RECOGNITION:
@@ -199,14 +215,25 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         Intent perspectiveTransformIntent = new Intent(this, PerspectiveTransformActivity.class);
         perspectiveTransformIntent.putExtra("receipt_path", receiptPath);
 
-        startActivityForResult(perspectiveTransformIntent, REQUEST_PERSPECTIVE_TRANSFORM);
+        startActivity(perspectiveTransformIntent);
     }
 
     private void dispatchRecognitionIntent(String receiptPath) {
-        Intent recognitionIntent = new Intent(this, RecognitionActivity.class);
+        Intent recognitionIntent = new Intent(this, ReceiptPreviewActivity.class);
         recognitionIntent.putExtra("receipt_path", receiptPath);
 
         startActivityForResult(recognitionIntent, REQUEST_RECOGNITION);
+    }
+
+    private void dispatchReceiptIntent(int receiptId, String shop, String date, double total, String receiptPath) {
+        Intent receiptIntent = new Intent(this, ReceiptPreviewActivity.class);
+        receiptIntent.putExtra("receipt_id", receiptId);
+        receiptIntent.putExtra("shop", shop);
+        receiptIntent.putExtra("date", date);
+        receiptIntent.putExtra("total", total);
+        receiptIntent.putExtra("file", receiptPath);
+
+        startActivity(receiptIntent);
     }
 
     public String getImagePath(Uri uri){
@@ -256,7 +283,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    private static final String[] STATE_LABEL = {
 //            "Choose one from below", "Hough transform",
 //            "Perspective transform", "MSER detector",
-//            "Text detect", "Text RecognitionActivity",
+//            "Text detect", "Text ReceiptPreviewActivity",
 //            "Repeat or choose one from below"};
 //    private int buttonState = STATE_INIT;
 //

@@ -40,9 +40,10 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".perspective_transform.PerspectiveTransformActivity"/>
-        <activity android:name=".recognition.RecognitionActivity"
-            android:windowSoftInputMode="adjustPan"/>
+        <activity android:name=".perspective_transform.PerspectiveTransformActivity" />
+        <activity
+            android:name=".ReceiptPreview.ReceiptPreviewActivity"
+            android:windowSoftInputMode="adjustPan" />
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -53,11 +54,15 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
-
         <provider
             android:name=".provider.DatabaseProvider"
             android:authorities="com.example.rychan.fyp.provider"
             android:enabled="true"
-            android:exported="true"/>
+            android:exported="true" />
+
+        <service
+            android:name=".recognition.RecognitionService"
+            android:exported="false"></service>
     </application>
+
 </manifest>
