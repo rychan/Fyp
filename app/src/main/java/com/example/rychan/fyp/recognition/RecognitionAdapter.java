@@ -14,9 +14,7 @@ import com.example.rychan.fyp.perspective_transform.DisplayImageFragment;
 import com.example.rychan.fyp.R;
 import com.example.rychan.fyp.recognition.RecognitionResult.*;
 
-import org.opencv.core.Mat;
-
-import java.util.List;
+import java.math.BigDecimal;
 
 /**
  * Created by rychan on 17年2月12日.
@@ -24,8 +22,6 @@ import java.util.List;
 
 public class RecognitionAdapter extends ArrayAdapter<LineResult> implements View.OnClickListener{
     RecognitionResult recognitionResult;
-    int currentFocusRow = -1;
-    int currentFocusItem = -1;
 
     public RecognitionAdapter(Context context, RecognitionResult recognitionResult) {
         super(context, R.layout.listitem_null, recognitionResult.resultList);
@@ -76,7 +72,7 @@ public class RecognitionAdapter extends ArrayAdapter<LineResult> implements View
                     DisplayImageFragment.displayImage(recognitionResult.receiptImage.rowRange(result.rowRange), holder2.imageView);
                     holder2.imageView.setId(position);
                     holder2.imageView.setOnClickListener(this);
-                    holder2.itemName.setText(result.result1);
+                    holder2.itemName.setText(result.text);
                     holder2.itemName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                         @Override
                         public void onFocusChange(View v, boolean hasFocus) {
@@ -86,12 +82,12 @@ public class RecognitionAdapter extends ArrayAdapter<LineResult> implements View
 //                                currentFocusItem = 0;
                             } else {
                                 Log.d("Lost Focus", String.valueOf(position)+"left");
-                                result.result1 = ((EditText) v).getText().toString();
+                                result.text = ((EditText) v).getText().toString();
                                 recognitionResult.computeTotal();
                             }
                         }
                     });
-                    holder2.itemPrice.setText(result.result2);
+                    holder2.itemPrice.setText(result.number.toString());
                     holder2.itemPrice.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                         @Override
                         public void onFocusChange(View v, boolean hasFocus) {
@@ -101,7 +97,7 @@ public class RecognitionAdapter extends ArrayAdapter<LineResult> implements View
 //                                currentFocusItem = 1;
                             } else {
                                 Log.d("Lost Focus", String.valueOf(position)+"right");
-                                result.result2 = ((EditText) v).getText().toString();
+                                result.number = new BigDecimal(((EditText) v).getText().toString());
                                 recognitionResult.computeTotal();
                             }
                         }
@@ -133,7 +129,7 @@ public class RecognitionAdapter extends ArrayAdapter<LineResult> implements View
                     DisplayImageFragment.displayImage(recognitionResult.receiptImage.rowRange(result.rowRange), holder1.imageView);
                     holder1.imageView.setId(position);
                     holder1.imageView.setOnClickListener(this);
-                    //holder1.textView.setText(result.result1);
+                    //holder1.textView.setText(result.text);
                 }
         }
         return convertView;

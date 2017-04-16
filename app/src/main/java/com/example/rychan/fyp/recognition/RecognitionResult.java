@@ -4,6 +4,9 @@ import org.opencv.core.Mat;
 import org.opencv.core.Range;
 
 import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Observable;
 import java.util.regex.Matcher;
@@ -23,8 +26,10 @@ public class RecognitionResult extends Observable {
 
     public String shopName = null;
     public String date = null;
-    public String total = null;
+    public BigDecimal total = new BigDecimal(0);
     public ArrayList<LineResult> resultList;
+
+    private DateFormat dateFormat;
 
     private Pattern shopPattern;
     private Pattern datePattern;
@@ -35,10 +40,11 @@ public class RecognitionResult extends Observable {
     private boolean dateFound = false;
     private boolean totalFound = false;
 
-    public RecognitionResult(Mat receiptImage, String shopRegex, String dateRegex, String totalRegex, String itemRegex) {
+    public RecognitionResult(Mat receiptImage, String shopRegex, String dateFormat, String totalRegex, String itemRegex) {
         this.receiptImage = receiptImage;
         this.shopPattern = Pattern.compile(shopRegex);
-        this.datePattern = Pattern.compile(dateRegex);
+        this.dateFormat = new SimpleDateFormat(dateFormat);
+        this.datePattern = Pattern.compile(".*(" + dateFormat.replaceAll("\\w","\\d") + ").*");
         this.totalPattern = Pattern.compile(totalRegex);
         this.itemPattern = Pattern.compile(itemRegex);
         this.resultList = new ArrayList<>();
@@ -53,54 +59,69 @@ public class RecognitionResult extends Observable {
     public void computeTotal(){
         BigDecimal totalPrice = new BigDecimal(0);
         for (LineResult l: resultList) {
-            if (l.type == TYPE_ITEM && l.result2 != null && !l.result2.isEmpty()) {
-                totalPrice = totalPrice.add(new BigDecimal(l.result2));
+            if (l.type == TYPE_ITEM) {
+                totalPrice = totalPrice.add(l.number);
             }
         }
-        total = totalPrice.toString();
+        total = totalPrice;
         setChanged();
         notifyObservers();
     }
 
     public class LineResult {
         Range rowRange;
-        String result1;
-        String result2 = null;
-        int type = TYPE_NULL;;
+        String text;
+        BigDecimal number;
+        int type = TYPE_NULL;
 
         LineResult(Range r, String s) {
             this.rowRange = r;
-            this.result1 = s;
+            this.text = s;
+            this.number = new BigDecimal(0);
         }
 
         void classify() {
-            Matcher itemMatcher = itemPattern.matcher(result1);
-            Matcher totalMatcher = totalPattern.matcher(result1);
-            Matcher dateMatcher = datePattern.matcher(result1);
-            Matcher shopMatcher = shopPattern.matcher(result1);
+            Matcher shopMatcher = shopPattern.matcher(text.replace("\\s",""));
+            Matcher totalMatcher = totalPattern.matcher(text);
+            Matcher itemMatcher = itemPattern.matcher(text);
+            Matcher dateMatcher = datePattern.matcher(text);
 
             if (shopMatcher.find() && !shopFound) {
                 type = TYPE_SHOP;
-                result1 = shopMatcher.group(1);
-                shopName = result1;
+                text = shopMatcher.group(1);
+                shopName = text;
                 shopFound = true;
-            } else if (dateMatcher.find() && !dateFound) {
-                type = TYPE_DATE;
-                result1 = dateMatcher.group(1);
-                date = result1;
-                dateFound = true;
             } else if (totalMatcher.find() && !totalFound) {
                 type = TYPE_TOTAL;
-                result1 = totalMatcher.group(1);
-                result2 = totalMatcher.group(2);
-                total = result2;
+                text = totalMatcher.group(1);
+                number = string2number(totalMatcher.group(2).replace("\\s",""));
+                total = number;
                 totalFound = true;
             } else if (itemMatcher.find() && !totalFound) {
                 type = TYPE_ITEM;
-                result1 = itemMatcher.group(1);
-                result2 = itemMatcher.group(2);
+                text = itemMatcher.group(1);
+                number = string2number(itemMatcher.group(2).replace("\\s",""));
+            } else if (dateMatcher.find() && !dateFound) {
+                try {
+                    DateFormat databaseFormat = new SimpleDateFormat("yyyy-MM-dd");
+
+                    type = TYPE_DATE;
+                    text = dateMatcher.group(1);
+                    date = databaseFormat.format(dateFormat.parse(text));
+                    dateFound = true;
+                } catch (ParseException e) {
+                    type = TYPE_NULL;
+                }
             } else {
                 type = TYPE_NULL;
+            }
+        }
+
+        private BigDecimal string2number(String s) {
+            if (s == null || s.isEmpty()) {
+                return new BigDecimal(0);
+            } else {
+                return new BigDecimal(s);
             }
         }
     }

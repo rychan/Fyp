@@ -31,6 +31,7 @@
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:ems="5"
+            android:textAlignment="viewEnd"
             android:inputType="numberDecimal"/>
     </LinearLayout>
 </LinearLayout>

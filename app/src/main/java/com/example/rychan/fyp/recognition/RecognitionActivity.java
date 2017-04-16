@@ -69,12 +69,63 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
         dateText.setText(recognitionResult.date);
 
         totalText = (TextView) findViewById(R.id.total);
-        totalText.setText(recognitionResult.total);
+        totalText.setText(recognitionResult.total.toString());
 
         listView.setAdapter(myAdapter);
 
         Button saveButton = (Button) findViewById(R.id.saveButton);
         saveButton.setOnClickListener(this);
+    }
+
+    private List<Range> segmentation1(Mat srcBinary) {
+
+        int width = srcBinary.cols();
+        int height = srcBinary.rows();
+
+        Mat rowSum = new Mat();
+        Core.reduce(srcBinary, rowSum, 1, Core.REDUCE_SUM, CvType.CV_32S);
+        rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
+
+        Mat rowMask = new Mat();
+        Imgproc.threshold(rowSum, rowMask, 250, 255, Imgproc.THRESH_BINARY_INV);
+
+        Mat kernel = new Mat(3, 1, CvType.CV_8UC1, Scalar.all(255));
+        Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_OPEN, kernel);
+
+        Mat marker = Mat.zeros(rowMask.rows(), rowMask.cols(), CvType.CV_32SC1);
+        int count = 0;
+        boolean b = rowMask.get(0, 0)[0] == 255;
+        int start = 0;
+        for (int y = 0; y < height; ++y) {
+            if (!b && rowMask.get(y, 0)[0] == 255) {
+                start = y;
+                b = true;
+            }
+            if (b && rowMask.get(y, 0)[0] == 0) {
+                marker.submat(start, y-1, 0, 0).setTo(new Scalar(++count));
+                b = false;
+            }
+        }
+
+        Mat rowSumBGR = new Mat();
+        Imgproc.cvtColor(rowSum, rowSumBGR, Imgproc.COLOR_GRAY2BGR);
+        Imgproc.watershed(rowSumBGR, marker);
+
+        List<Range> rowRangeList = new ArrayList<>();
+        start = 0;
+        count = 0;
+        for (int y = 0; y < height; ++y) {
+            if (marker.get(y, 0)[0] != -1) {
+                start = y;
+            } else {
+                ++count;
+                rowRangeList.add(new Range(start, y));
+            }
+        }
+        rowRangeList.add(new Range(start, height - 1));
+        Collections.reverse(rowRangeList);
+
+        return rowRangeList;
     }
 
     private List<Range> segmentation(Mat srcBinary) {
@@ -86,8 +137,11 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
         Core.reduce(srcBinary, rowSum, 1, Core.REDUCE_SUM, CvType.CV_32S);
         rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
 
+        Mat mean = new Mat();
+        Core.reduce(rowSum, mean, 0, Core.REDUCE_AVG);
+
         Mat rowMask = new Mat();
-        Imgproc.threshold(rowSum, rowMask, 250, 255, Imgproc.THRESH_BINARY_INV);
+        Imgproc.threshold(rowSum, rowMask, mean.get(0, 0)[0], 255, Imgproc.THRESH_BINARY_INV);
 
         Mat kernel = new Mat(5, 1, CvType.CV_8UC1, Scalar.all(255));
         Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_DILATE, kernel);
@@ -111,7 +165,7 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
     }
 
 
-    private List<Range> segmentation1(Mat srcBGR) {
+    private List<Range> segmentation2(Mat srcBGR) {
 
         int width = srcBGR.cols();
         int height = srcBGR.rows();
@@ -158,7 +212,7 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
         RecognitionResult recognitionResult = new RecognitionResult(
                 srcImage,
                 ".*(STARBUCKS).*",
-                ".*(\\d{4}/\\d{2}/\\d{2}).*",
+                "yyyy/MM/dd",
                 ".*(Total).*\\$(\\d*\\s*\\.\\s*\\d)",
                 "(.*)\\$(\\d*\\s*\\.\\s*\\d)"
         );
@@ -203,7 +257,7 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
 
     @Override
     public void update(Observable o, Object arg) {
-        totalText.setText(recognitionResult.total);
+        totalText.setText(recognitionResult.total.toString());
     }
 
     @Override
@@ -219,24 +273,20 @@ public class RecognitionActivity extends AppCompatActivity implements Observer, 
         } else {
             value.put(ReceiptEntry.COLUMN_DATE, recognitionResult.date);
         }
-        value.put(ReceiptEntry.COLUMN_TOTAL, Double.valueOf(recognitionResult.total));
+        value.put(ReceiptEntry.COLUMN_TOTAL, recognitionResult.total.doubleValue());
         value.put(ReceiptEntry.COLUMN_FILE, receiptPath);
         Uri uri = getContentResolver().insert(ReceiptProvider.RECEIPT_CONTENT_URI, value);
         int id = Integer.valueOf(uri.getLastPathSegment());
 
         for (RecognitionResult.LineResult l: recognitionResult.resultList) {
-            if (l.type == RecognitionResult.TYPE_ITEM && l.result2 != null && !l.result2.isEmpty()) {
+            if (l.type == RecognitionResult.TYPE_ITEM) {
                 ContentValues itemValue = new ContentValues();
-                if (l.result1 == null || l.result1.isEmpty()) {
+                if (l.text == null || l.text.isEmpty()) {
                     itemValue.put(ItemEntry.COLUMN_ITEM, "unknown");
                 } else {
-                    itemValue.put(ItemEntry.COLUMN_ITEM, l.result1);
+                    itemValue.put(ItemEntry.COLUMN_ITEM, l.text);
                 }
-                if (l.result2 == null || l.result2.isEmpty()) {
-                    itemValue.put(ItemEntry.COLUMN_PRICE, 0);
-                } else {
-                    itemValue.put(ItemEntry.COLUMN_PRICE, Double.valueOf(l.result2));
-                }
+                itemValue.put(ItemEntry.COLUMN_PRICE, l.number.doubleValue());
                 itemValue.put(ItemEntry.COLUMN_RECEIPT_ID, id);
                 getContentResolver().insert(ReceiptProvider.ITEM_CONTENT_URI, itemValue);
             }

@@ -159,7 +159,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             // Create the File where the photo should go
             File photoFile = null;
             try {
-                photoFile = createImageFile("Photo", ".jpg", getExternalFilesDir(Environment.DIRECTORY_PICTURES));
+                File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Fyp");
+                path.mkdirs();
+                photoFile = createImageFile("Photo", ".jpg", path);
                 photoPath = photoFile.getAbsolutePath();
             } catch (IOException ex) {
                 Log.d(TAG, "Cannot create file");

@@ -6,6 +6,7 @@ import android.content.SharedPreferences;
 import android.graphics.PointF;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -269,7 +270,9 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         File photoFile = null;
         String receiptPath = "";
         try {
-            photoFile = MainActivity.createImageFile("Receipt", ".pbm", getExternalFilesDir("Receipts"));
+            File path = Environment.getExternalStoragePublicDirectory("Receipts");
+            path.mkdirs();
+            photoFile = MainActivity.createImageFile("Receipt", ".pbm", path);
             receiptPath = photoFile.getAbsolutePath();
         } catch (IOException ex) {
             // Error occurred while creating the File
