@@ -1,16 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/activity_recognition"
+    android:id="@+id/activity_receipt_preview"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.example.rychan.fyp.ReceiptPreview.ReceiptPreviewActivity">
+    tools:context="com.example.rychan.fyp.receipt_preview.ReceiptPreviewActivity">
 
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/holo_orange_light">
+        android:background="@color/item_background">
 
         <TableRow
             android:layout_width="match_parent"
@@ -19,36 +19,18 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:gravity="center"
-                android:text="Shop Name"
+                android:paddingEnd="30dp"
+                android:paddingStart="30dp"
+                android:text="Shop"
+                android:textColor="@android:color/black"
                 android:textSize="18sp" />
 
-            <EditText
-                android:id="@+id/shopName"
+            <AutoCompleteTextView
+                android:id="@+id/shop"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:gravity="center"
-                android:text="Date"
-                android:textSize="18sp" />
-
-            <EditText
-                android:id="@+id/date"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:inputType="date" />
         </TableRow>
 
         <TableRow
@@ -60,9 +42,37 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:gravity="center"
+                android:paddingEnd="30dp"
+                android:paddingStart="30dp"
+                android:text="Date"
+                android:textColor="@android:color/black"
+                android:textSize="18sp" />
+
+            <TextView
+                android:id="@+id/date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:textColor="@android:color/black"
+                android:textSize="18sp" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="5dp"
+            android:paddingTop="5dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingEnd="30dp"
+                android:paddingStart="30dp"
                 android:text="Total"
+                android:textColor="@android:color/black"
                 android:textSize="18sp" />
 
             <TextView
@@ -70,6 +80,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:textColor="@android:color/black"
                 android:textSize="18sp" />
         </TableRow>
 
@@ -83,7 +94,7 @@
         android:id="@+id/list_view" />
 
     <Button
-        android:id="@+id/saveButton"
+        android:id="@+id/save_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Save" />

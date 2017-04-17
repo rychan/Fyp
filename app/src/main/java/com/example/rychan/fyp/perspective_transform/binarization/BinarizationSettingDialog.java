@@ -80,16 +80,22 @@ public class BinarizationSettingDialog extends DialogFragment {
 
     // Override the Fragment.onAttach() method to instantiate the DialogListener
     @Override
-    public void onAttach(Context activity) {
-        super.onAttach(activity);
-        // Verify that the host activity implements the callback interface
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        // Verify that the host context implements the callback interface
         try {
             // Instantiate the DialogListener so we can send events to the host
-            mListener = (DialogListener) activity;
+            mListener = (DialogListener) context;
         } catch (ClassCastException e) {
-            // The activity doesn't implement the interface, throw exception
-            throw new ClassCastException(activity.toString()
+            // The context doesn't implement the interface, throw exception
+            throw new ClassCastException(context.toString()
                     + " must implement DialogListener");
         }
+    }
+
+    @Override
+    public void onDetach() {
+        super.onDetach();
+        mListener = null;
     }
 }

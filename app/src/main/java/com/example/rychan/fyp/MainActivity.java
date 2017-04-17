@@ -15,9 +15,10 @@ import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
 
-import com.example.rychan.fyp.ReceiptPreview.ReceiptPreviewActivity;
+import com.example.rychan.fyp.receipt_preview.ReceiptPreviewActivity;
 import com.example.rychan.fyp.perspective_transform.PerspectiveTransformActivity;
 import com.example.rychan.fyp.provider.Contract.*;
+import com.example.rychan.fyp.xml_preview.XmlPreviewActivity;
 
 import org.opencv.android.BaseLoaderCallback;
 import org.opencv.android.LoaderCallbackInterface;
@@ -59,9 +60,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         ReceiptEntry.COLUMN_STATUS,
                         ReceiptEntry.COLUMN_SHOP,
                         ReceiptEntry.COLUMN_TOTAL},
-                new int[]{
-                        R.id.textView, R.id.textView2, R.id.textView3, R.id.textView4,
-                }
+                new int[]{R.id.textView, R.id.textView2, R.id.textView3, R.id.textView4},
+                SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER
         );
 
         ListView listView = (ListView) findViewById(R.id.list_view);
@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         double total = cursor.getDouble(cursor.getColumnIndex(ReceiptEntry.COLUMN_TOTAL));
                         String receiptPath = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_FILE));
 
-                        dispatchReceiptIntent(receiptId, shop, date, total, receiptPath);
+                        dispatchReceiptPreviewIntent(receiptId, shop, date, total, receiptPath);
                     }
                 }
             }
@@ -86,6 +86,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         galleryButton.setOnClickListener(this);
         Button cameraButton = (Button) findViewById(R.id.camera_button);
         cameraButton.setOnClickListener(this);
+        Button xmlButton = (Button) findViewById(R.id.xml_button);
+        xmlButton.setOnClickListener(this);
     }
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
@@ -128,6 +130,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.gallery_button:
                 dispatchGalleryIntent();
                 break;
+            case R.id.xml_button:
+                dispatchXmlPreviewIntent();
             default:
         }
     }
@@ -218,22 +222,28 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         startActivity(perspectiveTransformIntent);
     }
 
-    private void dispatchRecognitionIntent(String receiptPath) {
-        Intent recognitionIntent = new Intent(this, ReceiptPreviewActivity.class);
-        recognitionIntent.putExtra("receipt_path", receiptPath);
+//    private void dispatchRecognitionIntent(String receiptPath) {
+//        Intent recognitionIntent = new Intent(this, ReceiptPreviewActivity.class);
+//        recognitionIntent.putExtra("receipt_path", receiptPath);
+//
+//        startActivityForResult(recognitionIntent, REQUEST_RECOGNITION);
+//    }
 
-        startActivityForResult(recognitionIntent, REQUEST_RECOGNITION);
+    private void dispatchReceiptPreviewIntent(int receiptId, String shop, String date, double total, String receiptPath) {
+        Intent receiptPreviewIntent = new Intent(this, ReceiptPreviewActivity.class);
+        receiptPreviewIntent.putExtra("receipt_id", receiptId);
+        receiptPreviewIntent.putExtra("shop", shop);
+        receiptPreviewIntent.putExtra("date", date);
+        receiptPreviewIntent.putExtra("total", total);
+        receiptPreviewIntent.putExtra("file", receiptPath);
+
+        startActivity(receiptPreviewIntent);
     }
 
-    private void dispatchReceiptIntent(int receiptId, String shop, String date, double total, String receiptPath) {
-        Intent receiptIntent = new Intent(this, ReceiptPreviewActivity.class);
-        receiptIntent.putExtra("receipt_id", receiptId);
-        receiptIntent.putExtra("shop", shop);
-        receiptIntent.putExtra("date", date);
-        receiptIntent.putExtra("total", total);
-        receiptIntent.putExtra("file", receiptPath);
+    private void dispatchXmlPreviewIntent() {
+        Intent xmlPreviewIntent = new Intent(this, XmlPreviewActivity.class);
 
-        startActivity(receiptIntent);
+        startActivity(xmlPreviewIntent);
     }
 
     public String getImagePath(Uri uri){
@@ -283,7 +293,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //    private static final String[] STATE_LABEL = {
 //            "Choose one from below", "Hough transform",
 //            "Perspective transform", "MSER detector",
-//            "Text detect", "Text ReceiptPreviewActivity",
+//            "Text detect", "Text XmlPreviewActivity",
 //            "Repeat or choose one from below"};
 //    private int buttonState = STATE_INIT;
 //

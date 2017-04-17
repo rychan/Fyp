@@ -33,6 +33,7 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -40,10 +41,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity android:name=".perspective_transform.PerspectiveTransformActivity" />
-        <activity
-            android:name=".ReceiptPreview.ReceiptPreviewActivity"
+
+        <activity android:name=".receipt_preview.ReceiptPreviewActivity"
             android:windowSoftInputMode="adjustPan" />
+
+        <activity android:name=".xml_preview.XmlPreviewActivity"/>
 
         <provider
             android:name="android.support.v4.content.FileProvider"
@@ -62,7 +66,7 @@
 
         <service
             android:name=".recognition.RecognitionService"
-            android:exported="false"></service>
+            android:exported="false"/>
     </application>
 
 </manifest>

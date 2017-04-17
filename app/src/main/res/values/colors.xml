@@ -10,4 +10,5 @@
 
     <color name="regionSelectorCircleStrokeColor">#ff59a9ff</color>
     <color name="regionSelectorCircleBackground">#90e5f8ff</color>
+    <color name="item_background">#fae779</color>
 </resources>

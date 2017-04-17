@@ -108,20 +108,20 @@ public class DatabaseProvider extends ContentProvider {
         switch (uriMatcher.match(uri)) {
             case RECEIPT:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
+                //checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 break;
             case RECEIPT_ID:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
+                //checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ReceiptEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             case ITEM:
                 queryBuilder.setTables(joinTable);
-                checkColumns(projection, ItemEntry.ALL_COLUMN);
+                //checkColumns(projection, ItemEntry.ALL_COLUMN);
                 break;
             case ITEM_ID:
                 queryBuilder.setTables(joinTable);
-                checkColumns(projection, ItemEntry.ALL_COLUMN);
+                //checkColumns(projection, ItemEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ItemEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             default:
@@ -156,8 +156,9 @@ public class DatabaseProvider extends ContentProvider {
             default:
                 throw new IllegalArgumentException("Unknown URI: " + uri);
         }
-        getContext().getContentResolver().notifyChange(uri, null);
-        return ContentUris.withAppendedId(resultUri, id);
+        Uri newUri = ContentUris.withAppendedId(resultUri, id);
+        getContext().getContentResolver().notifyChange(newUri, null);
+        return newUri;
     }
 
 
