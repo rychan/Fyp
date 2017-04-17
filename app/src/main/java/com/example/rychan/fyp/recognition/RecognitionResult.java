@@ -138,7 +138,7 @@ public class RecognitionResult{
 
         public void save(ContentResolver contentResolver, int receiptId) {
             ContentValues values = new ContentValues();
-            values.put(ItemEntry.COLUMN_TEXT, text);
+            values.put(ItemEntry.COLUMN_NAME, text);
             values.put(ItemEntry.COLUMN_PRICE, price);
             values.put(ItemEntry.COLUMN_RECEIPT_ID, receiptId);
             values.put(ItemEntry.COLUMN_START_ROW, startRow);

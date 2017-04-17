@@ -131,7 +131,7 @@ public class HoughResultFragment extends DisplayImageFragment {
             progressDialog.setCancelable(false);
             progressDialog.show();
 
-            padding = (int) getResources().getDimension(R.dimen.scanPadding);
+            padding = (int) getResources().getDimension(R.dimen.scan_padding);
             frameWidth = imageView.getWidth() - 2 * padding;
             frameHeight = imageView.getHeight() - 2 * padding;
             frameSize = new Size(frameWidth, frameHeight);

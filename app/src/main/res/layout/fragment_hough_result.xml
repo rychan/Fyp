@@ -22,7 +22,7 @@
                 android:layout_gravity="center"
                 android:scaleType="centerInside"
                 android:adjustViewBounds="true"
-                android:padding="@dimen/scanPadding" />
+                android:padding="@dimen/scan_padding" />
 
             <com.example.rychan.fyp.perspective_transform.RegionSelector
                 android:id="@+id/region_selector"

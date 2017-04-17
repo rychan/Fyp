@@ -276,7 +276,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         try {
             File path = Environment.getExternalStoragePublicDirectory("Receipts");
             path.mkdirs();
-            photoFile = MainActivity.createImageFile("Receipt", ".pbm", path);
+            photoFile = MainActivity.createFile("Receipt", ".pbm", path);
             receiptPath = photoFile.getAbsolutePath();
         } catch (IOException ex) {
             // Error occurred while creating the File

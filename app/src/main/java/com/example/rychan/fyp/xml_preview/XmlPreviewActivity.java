@@ -1,25 +1,33 @@
 package com.example.rychan.fyp.xml_preview;
 
-import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Xml;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.example.rychan.fyp.DatePickerDialogFragment;
+import com.example.rychan.fyp.MainActivity;
 import com.example.rychan.fyp.R;
 import com.example.rychan.fyp.provider.Contract.ItemEntry;
 import com.example.rychan.fyp.provider.Contract.ReceiptEntry;
 import com.example.rychan.fyp.provider.Contract.ReceiptProvider;
 
+import org.xmlpull.v1.XmlSerializer;
+
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.StringWriter;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -35,6 +43,7 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     private TextView startDate;
     private TextView endDate;
     private TextView totalText;
+    private Cursor cursor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,19 +65,21 @@ public class XmlPreviewActivity extends AppCompatActivity implements
 
         startDate = (TextView) findViewById(R.id.start_date);
         startDate.setText("2017-01-01");
+        startDate.setOnClickListener(this);
 
         endDate = (TextView) findViewById(R.id.end_date);
         endDate.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+        endDate.setOnClickListener(this);
 
         totalText = (TextView) findViewById(R.id.total);
-        totalText.setText(String.valueOf(0));
+        totalText.setText("...");
 
         ListView listView = (ListView) findViewById(R.id.list_view);
         xmlPreviewAdapter = new XmlPreviewAdapter(this, null);
         listView.setAdapter(xmlPreviewAdapter);
         getSupportLoaderManager().initLoader(LIST_ITEM_LOADER, null, this);
 
-        Button saveButton = (Button) findViewById(R.id.save_button);
+        Button saveButton = (Button) findViewById(R.id.button);
         saveButton.setOnClickListener(this);
     }
 
@@ -78,11 +89,14 @@ public class XmlPreviewActivity extends AppCompatActivity implements
             case LIST_ITEM_LOADER:
                 return new CursorLoader(this,
                         ReceiptProvider.ITEM_CONTENT_URI,
-                        null,
-                        ReceiptEntry.COLUMN_STATUS + " != ? AND " +
+                        new String[]{ItemEntry.DATABASE_TABLE_NAME + "." + ItemEntry._ID,
+                                ItemEntry.COLUMN_NAME, ItemEntry.COLUMN_PRICE,
+                                ItemEntry.COLUMN_RECEIPT_ID, ReceiptEntry.COLUMN_SHOP,
+                                ReceiptEntry.COLUMN_DATE},
+                        ItemEntry.COLUMN_TYPE + " == ? AND " +
                                 ReceiptEntry.COLUMN_DATE + " >= ? AND " +
-                                ReceiptEntry.COLUMN_DATE + " >= ? ",
-                        new String[]{String.valueOf(ReceiptEntry.STATUS_PROCESSING),
+                                ReceiptEntry.COLUMN_DATE + " <= ? ",
+                        new String[]{String.valueOf(ItemEntry.TYPE_ITEM),
                         startDate.getText().toString(), endDate.getText().toString()},
                         ItemEntry.COLUMN_RECEIPT_ID + " ASC ");
 
@@ -102,11 +116,13 @@ public class XmlPreviewActivity extends AppCompatActivity implements
         switch (loader.getId()) {
             case LIST_ITEM_LOADER:
                 double total = 0;
+                data.moveToPosition(-1);
                 while (data.moveToNext()) {
                     total += data.getDouble(data.getColumnIndex(ItemEntry.COLUMN_PRICE));
                 }
                 totalText.setText(String.valueOf(total));
                 xmlPreviewAdapter.swapCursor(data);
+                cursor = data;
                 break;
 //            case SHOP_LOADER:
 //                simpleCursorAdapter.swapCursor(data);
@@ -133,6 +149,7 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button:
+                writeXmlFile();
                 finish();
                 break;
 
@@ -145,7 +162,6 @@ public class XmlPreviewActivity extends AppCompatActivity implements
                 arg.putInt(DatePickerDialogFragment.ARG_VIEW_ID, v.getId());
                 dialogFragment.setArguments(arg);
                 dialogFragment.show(getSupportFragmentManager(), "DatePicker");
-                getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
                 break;
 
             default:
@@ -156,5 +172,65 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     public void getDateString(int viewId, String date) {
         TextView textView = (TextView) findViewById(viewId);
         textView.setText(date);
+        getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
+    }
+
+
+    private void writeXmlFile() {
+        File outputFile = null;
+        try {
+            File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS + "/Fyp");
+            path.mkdirs();
+            outputFile = MainActivity.createFile("Report", ".xml", path);
+
+            FileWriter out = new FileWriter(outputFile);
+            XmlSerializer serializer = Xml.newSerializer();
+            StringWriter stringWriter = new StringWriter();
+
+            serializer.setOutput(stringWriter);
+            serializer.startDocument("UTF-8", true);
+            serializer.startTag("", "report");
+
+            serializer.startTag("", "shop_list");
+            serializer.startTag("", "shop");
+            serializer.text("All");
+            serializer.endTag("", "shop");
+            serializer.endTag("", "shop_list");
+
+            serializer.startTag("", "start_date");
+            serializer.text(startDate.getText().toString());
+            serializer.endTag("", "start_date");
+
+            serializer.startTag("", "end_date");
+            serializer.text(endDate.getText().toString());
+            serializer.endTag("", "end_date");
+
+            serializer.startTag("", "total");
+            serializer.text(totalText.getText().toString());
+            serializer.endTag("", "total");
+
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                serializer.startTag("", "item");
+                for (String s: new String[]{ItemEntry.COLUMN_NAME,
+                        ReceiptEntry.COLUMN_SHOP, ReceiptEntry.COLUMN_DATE}) {
+                    serializer.startTag("", s);
+                    serializer.text(cursor.getString(cursor.getColumnIndex(s)));
+                    serializer.endTag("", s);
+                }
+
+                serializer.startTag("", ItemEntry.COLUMN_PRICE);
+                serializer.text(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
+                serializer.endTag("", ItemEntry.COLUMN_PRICE);
+
+                serializer.endTag("", "item");
+            }
+            serializer.endTag("", "report");
+            serializer.endDocument();
+
+            out.write(stringWriter.toString());
+            out.close();
+        } catch (IOException e) {
+        }
     }
 }

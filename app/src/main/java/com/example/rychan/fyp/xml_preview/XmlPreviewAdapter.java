@@ -30,10 +30,11 @@ public class XmlPreviewAdapter extends CursorAdapter {
         int currentReceiptId = cursor.getInt(cursor.getColumnIndex(ItemEntry.COLUMN_RECEIPT_ID));
         if (cursor.moveToPrevious()) {
             if (cursor.getInt(cursor.getColumnIndex(ItemEntry.COLUMN_RECEIPT_ID)) == currentReceiptId) {
+                cursor.moveToNext();
                 return TYPE_OTHER;
             }
-            cursor.moveToNext();
         }
+        cursor.moveToNext();
         return TYPE_FIRST;
     }
 
@@ -65,7 +66,7 @@ public class XmlPreviewAdapter extends CursorAdapter {
 
             case TYPE_OTHER:
                 ItemHolder holder2;
-                v = LayoutInflater.from(context).inflate(R.layout.listitem_receipt_item, parent, false);
+                v = LayoutInflater.from(context).inflate(R.layout.listitem_xml_item, parent, false);
                 holder2 = new ItemHolder();
                 holder2.itemName = (TextView) v.findViewById(R.id.item_name);
                 holder2.price = (TextView) v.findViewById(R.id.price);
@@ -80,18 +81,18 @@ public class XmlPreviewAdapter extends CursorAdapter {
     @Override
     public void bindView(View view, Context context, Cursor cursor) {
         switch (getItemViewType(cursor)) {
-            case ItemEntry.TYPE_OTHER:
+            case TYPE_FIRST:
                 ReceiptHolder holder1 = (ReceiptHolder) view.getTag();
                 holder1.shop.setText(cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_SHOP)));
                 holder1.date.setText(cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_DATE)));
-                holder1.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_TEXT)));
+                holder1.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_NAME)));
                 holder1.price.setText(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
                 break;
 
-            case ItemEntry.TYPE_ITEM:
+            case TYPE_OTHER:
                 ItemHolder holder2 = (ItemHolder) view.getTag();
 
-                holder2.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_TEXT)));
+                holder2.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_NAME)));
                 holder2.price.setText(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
                 break;
             default:

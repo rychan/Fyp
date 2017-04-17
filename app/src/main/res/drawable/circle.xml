@@ -5,10 +5,10 @@
     <solid android:color="@color/regionSelectorCircleBackground" />
 
     <size
-        android:width="@dimen/regionSelectorCircleWidth"
-        android:height="@dimen/regionSelectorCircleWidth" />
+        android:width="@dimen/region_selector_circle_width"
+        android:height="@dimen/region_selector_circle_width" />
 
     <stroke
-        android:width="@dimen/regionSelectorStrokeWidth"
+        android:width="@dimen/region_selector_stroke_width"
         android:color="@color/regionSelectorCircleStrokeColor"></stroke>
 </shape>

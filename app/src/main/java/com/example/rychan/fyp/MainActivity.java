@@ -1,12 +1,17 @@
 package com.example.rychan.fyp;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
 import android.support.v4.content.FileProvider;
+import android.support.v4.content.Loader;
 import android.support.v4.widget.SimpleCursorAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
@@ -30,16 +35,23 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener{
+public class MainActivity extends AppCompatActivity implements
+        View.OnClickListener, AdapterView.OnItemClickListener,
+        LoaderManager.LoaderCallbacks<Cursor>{
 
     // Log
     private static final String TAG = "MainActivity";
+
+    private static final int LIST_ITEM_LOADER = 0;
 
     private String photoPath;
     private static final int REQUEST_CAMERA = 1;
     private static final int REQUEST_GALLERY = 2;
     private static final int REQUEST_PERSPECTIVE_TRANSFORM = 3;
     private static final int REQUEST_RECOGNITION = 4;
+
+    private SimpleCursorAdapter simpleCursorAdapter;
+    private Cursor cursor;
 
 
     @Override
@@ -48,47 +60,30 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        final Cursor cursor = getContentResolver().query(ReceiptProvider.RECEIPT_CONTENT_URI,
-                null, null, null, ReceiptEntry._ID + " DESC");
-
-        SimpleCursorAdapter simpleCursorAdapter = new SimpleCursorAdapter(
+        simpleCursorAdapter = new SimpleCursorAdapter(
                 this,
-                R.layout.listitem_main_receipt,
-                cursor,
+                R.layout.listitem_main,
+                null,
                 new String[]{
                         ReceiptEntry.COLUMN_DATE,
                         ReceiptEntry.COLUMN_STATUS,
                         ReceiptEntry.COLUMN_SHOP,
                         ReceiptEntry.COLUMN_TOTAL},
-                new int[]{R.id.textView, R.id.textView2, R.id.textView3, R.id.textView4},
-                SimpleCursorAdapter.FLAG_REGISTER_CONTENT_OBSERVER
-        );
-
+                new int[]{R.id.date, R.id.status, R.id.shop, R.id.total},
+                0);
         ListView listView = (ListView) findViewById(R.id.list_view);
         listView.setAdapter(simpleCursorAdapter);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                if (cursor.moveToPosition(i)) {
-                    if (cursor.getInt(cursor.getColumnIndex(ReceiptEntry.COLUMN_STATUS)) != ReceiptEntry.STATUS_PROCESSING) {
-                        int receiptId = cursor.getInt(cursor.getColumnIndex(ReceiptEntry._ID));
-                        String shop = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_SHOP));
-                        String date = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_DATE));
-                        double total = cursor.getDouble(cursor.getColumnIndex(ReceiptEntry.COLUMN_TOTAL));
-                        String receiptPath = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_FILE));
+        listView.setOnItemClickListener(this);
+        getSupportLoaderManager().initLoader(LIST_ITEM_LOADER, null, this);
 
-                        dispatchReceiptPreviewIntent(receiptId, shop, date, total, receiptPath);
-                    }
-                }
-            }
-        });
         Button galleryButton = (Button) findViewById(R.id.gallery_button);
         galleryButton.setOnClickListener(this);
         Button cameraButton = (Button) findViewById(R.id.camera_button);
         cameraButton.setOnClickListener(this);
-        Button xmlButton = (Button) findViewById(R.id.xml_button);
+        Button xmlButton = (Button) findViewById(R.id.export_button);
         xmlButton.setOnClickListener(this);
     }
+
 
     private BaseLoaderCallback mLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -120,6 +115,51 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     }
 
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        switch (id) {
+            case LIST_ITEM_LOADER:
+                return new CursorLoader(this,
+                        ReceiptProvider.RECEIPT_CONTENT_URI,
+                        null, null, null, ReceiptEntry._ID + " DESC");
+            default:
+                throw new IllegalArgumentException("Unknown loader id");
+        }
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        switch (loader.getId()) {
+            case LIST_ITEM_LOADER:
+                simpleCursorAdapter.swapCursor(data);
+                cursor = data;
+            default:
+        }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        switch (loader.getId()) {
+            case LIST_ITEM_LOADER:
+                simpleCursorAdapter.swapCursor(null);
+            default:
+        }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+        if (cursor.moveToPosition(i)) {
+            if (cursor.getInt(cursor.getColumnIndex(ReceiptEntry.COLUMN_STATUS)) != ReceiptEntry.STATUS_PROCESSING) {
+                int receiptId = cursor.getInt(cursor.getColumnIndex(ReceiptEntry._ID));
+                String shop = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_SHOP));
+                String date = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_DATE));
+                double total = cursor.getDouble(cursor.getColumnIndex(ReceiptEntry.COLUMN_TOTAL));
+                String receiptPath = cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_FILE));
+
+                dispatchReceiptPreviewIntent(receiptId, shop, date, total, receiptPath);
+            }
+        }
+    }
 
     @Override
     public void onClick(View view) {
@@ -130,7 +170,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case R.id.gallery_button:
                 dispatchGalleryIntent();
                 break;
-            case R.id.xml_button:
+            case R.id.export_button:
                 dispatchXmlPreviewIntent();
             default:
         }
@@ -156,17 +196,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 }
                 break;
 
-            case REQUEST_PERSPECTIVE_TRANSFORM:
-                break;
-
-            case REQUEST_RECOGNITION:
-                break;
-
             default:
         }
     }
 
-    public static File createImageFile(String prefix, String format, File storageDir) throws IOException {
+    public static File createFile(String prefix, String format, File storageDir) throws IOException {
         String timeStamp = new SimpleDateFormat("yyyymmdd_hhmmss").format(new Date());
         String imageFileName = prefix + "_" + timeStamp + "_";
         return File.createTempFile(imageFileName, format, storageDir);
@@ -181,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             try {
                 File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES + "/Fyp");
                 path.mkdirs();
-                photoFile = createImageFile("Photo", ".jpg", path);
+                photoFile = createFile("Photo", ".jpg", path);
                 photoPath = photoFile.getAbsolutePath();
             } catch (IOException ex) {
                 Log.d(TAG, "Cannot create file");
@@ -236,6 +270,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         receiptPreviewIntent.putExtra("date", date);
         receiptPreviewIntent.putExtra("total", total);
         receiptPreviewIntent.putExtra("file", receiptPath);
+
+        ContentValues values = new ContentValues();
+        values.put(ReceiptEntry.COLUMN_STATUS, ReceiptEntry.STATUS_OLD);
+        getContentResolver().update(
+                ContentUris.withAppendedId(ReceiptProvider.RECEIPT_CONTENT_URI, receiptId),
+                values, null, null);
 
         startActivity(receiptPreviewIntent);
     }

@@ -3,10 +3,14 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
 
-    <dimen name="scanPadding">16dp</dimen>
-    <dimen name="regionSelectorCircleWidth">32dp</dimen>
-    <dimen name="regionSelectorStrokeWidth">2dp</dimen>
-    <!-- ScanPadding must be half of polygonViewCircleWidth -->
+    <dimen name="horizontal_padding">10dp</dimen>
+    <dimen name="vertical_padding">5dp</dimen>
 
-    <dimen name="bottom_bar_padding">15dp</dimen>
+    <dimen name="small_text_margin">5dp</dimen>
+    <dimen name="big_text_padding">30dp</dimen>
+
+    <dimen name="scan_padding">20dp</dimen>
+    <dimen name="region_selector_circle_width">40dp</dimen>
+    <dimen name="region_selector_stroke_width">2dp</dimen>
+    <!-- scan_padding must be half of region_selector_circle_width -->
 </resources>

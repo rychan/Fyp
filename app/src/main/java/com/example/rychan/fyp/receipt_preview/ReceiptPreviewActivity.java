@@ -79,7 +79,7 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
         listView.setOnItemClickListener(this);
         getSupportLoaderManager().initLoader(LIST_ITEM_LOADER, null, this);
 
-        Button saveButton = (Button) findViewById(R.id.save_button);
+        Button saveButton = (Button) findViewById(R.id.button);
         saveButton.setOnClickListener(this);
     }
 
@@ -93,7 +93,10 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
             case LIST_ITEM_LOADER:
                 return new CursorLoader(this,
                         ReceiptProvider.ITEM_CONTENT_URI,
-                        null,
+                        new String[]{ItemEntry.DATABASE_TABLE_NAME + "." + ItemEntry._ID,
+                                ItemEntry.COLUMN_NAME, ItemEntry.COLUMN_PRICE,
+                                ItemEntry.COLUMN_START_ROW, ItemEntry.COLUMN_END_ROW,
+                                ItemEntry.COLUMN_TYPE},
                         ItemEntry.COLUMN_RECEIPT_ID + " = ?",
                         new String[]{String.valueOf(receiptId)},
                         null);
@@ -148,7 +151,7 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
     @Override
     public void onClick(final View v) {
         switch (v.getId()) {
-            case R.id.save_button:
+            case R.id.button:
                 finish();
                 break;
 

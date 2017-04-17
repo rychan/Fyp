@@ -31,7 +31,7 @@ public final class Contract {
 
     public static abstract class ItemEntry implements BaseColumns {
 
-        public static final String COLUMN_TEXT = "text";
+        public static final String COLUMN_NAME = "name";
         public static final String COLUMN_PRICE = "price";
         public static final String COLUMN_RECEIPT_ID = "receipt_id";
         public static final String COLUMN_START_ROW = "start_row";
@@ -42,11 +42,11 @@ public final class Contract {
 
         public static final String DATABASE_TABLE_NAME = "item_table";
 
-        public static final String [] ALL_COLUMN = {_ID, COLUMN_TEXT, COLUMN_PRICE,
-                COLUMN_RECEIPT_ID, COLUMN_RECEIPT_ID, COLUMN_START_ROW,
-                COLUMN_END_ROW, COLUMN_TYPE,
+        public static final String [] ALL_COLUMN = {_ID, COLUMN_NAME, COLUMN_PRICE,
+                COLUMN_RECEIPT_ID,  COLUMN_START_ROW, COLUMN_END_ROW, COLUMN_TYPE,
                 ReceiptEntry.COLUMN_SHOP, ReceiptEntry.COLUMN_DATE, ReceiptEntry.COLUMN_TOTAL,
-                ReceiptEntry.COLUMN_FILE, ReceiptEntry.COLUMN_STATUS};
+                ReceiptEntry.COLUMN_FILE, ReceiptEntry.COLUMN_STATUS,
+                ItemEntry.DATABASE_TABLE_NAME + "." + ItemEntry._ID};
     }
 
     public static abstract class ReceiptProvider {

@@ -47,7 +47,7 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
                 TypeOtherHolder holder1;
                 v = LayoutInflater.from(context).inflate(R.layout.listitem_receipt_other, parent, false);
                 holder1 = new TypeOtherHolder();
-                holder1.imageView = (ImageView) v.findViewById(R.id.image);
+                holder1.imageView = (ImageView) v.findViewById(R.id.image_view);
                 //holder1.textView = (TextView) convertView.findViewById(R.id.result);
                 v.setTag(holder1);
                 break;
@@ -56,9 +56,9 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
                 TypeItemHolder holder2;
                 v = LayoutInflater.from(context).inflate(R.layout.listitem_receipt_item, parent, false);
                 holder2 = new TypeItemHolder();
-                holder2.imageView = (ImageView) v.findViewById(R.id.image);
-                holder2.itemName = (EditText) v.findViewById(R.id.itemName);
-                holder2.itemPrice = (EditText) v.findViewById(R.id.itemPrice);
+                holder2.imageView = (ImageView) v.findViewById(R.id.image_view);
+                holder2.itemName = (EditText) v.findViewById(R.id.item_name);
+                holder2.itemPrice = (EditText) v.findViewById(R.id.price);
                 v.setTag(holder2);
                 break;
 
@@ -88,7 +88,7 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
 //                holder2.imageView.setId(position);
 //                holder2.imageView.setOnClickListener(this);
 
-                holder2.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_TEXT)));
+                holder2.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_NAME)));
 //                holder2.itemName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
 //                    @Override
 //                    public void onFocusChange(View v, boolean hasFocus) {

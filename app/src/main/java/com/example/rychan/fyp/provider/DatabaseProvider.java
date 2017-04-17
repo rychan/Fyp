@@ -55,7 +55,7 @@ public class DatabaseProvider extends ContentProvider {
     static final String CREATE_ITEM_TABLE =
             " CREATE TABLE " + ItemEntry.DATABASE_TABLE_NAME + " (" +
                     ItemEntry._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                    ItemEntry.COLUMN_TEXT + " TEXT, " +
+                    ItemEntry.COLUMN_NAME + " TEXT, " +
                     ItemEntry.COLUMN_PRICE + " REAL, " +
                     ItemEntry.COLUMN_RECEIPT_ID + " INTEGER, " +
                     ItemEntry.COLUMN_START_ROW + " INTEGER, " +
@@ -108,20 +108,20 @@ public class DatabaseProvider extends ContentProvider {
         switch (uriMatcher.match(uri)) {
             case RECEIPT:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                //checkColumns(projection, ReceiptEntry.ALL_COLUMN);
+                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 break;
             case RECEIPT_ID:
                 queryBuilder.setTables(ReceiptEntry.DATABASE_TABLE_NAME);
-                //checkColumns(projection, ReceiptEntry.ALL_COLUMN);
+                checkColumns(projection, ReceiptEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ReceiptEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             case ITEM:
                 queryBuilder.setTables(joinTable);
-                //checkColumns(projection, ItemEntry.ALL_COLUMN);
+                checkColumns(projection, ItemEntry.ALL_COLUMN);
                 break;
             case ITEM_ID:
                 queryBuilder.setTables(joinTable);
-                //checkColumns(projection, ItemEntry.ALL_COLUMN);
+                checkColumns(projection, ItemEntry.ALL_COLUMN);
                 queryBuilder.appendWhere(ItemEntry._ID + "=" + uri.getLastPathSegment());
                 break;
             default:
