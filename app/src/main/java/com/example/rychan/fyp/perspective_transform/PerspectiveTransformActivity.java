@@ -297,9 +297,6 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
             int receiptId = Integer.valueOf(uri.getLastPathSegment());
 
             RecognitionService.startActionRecognition(this, receiptPath, receiptId);
-
-            Intent data = new Intent();
-            setResult(RESULT_OK, data);
             finish();
         }
     }

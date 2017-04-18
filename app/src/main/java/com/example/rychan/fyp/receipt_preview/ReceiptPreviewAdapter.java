@@ -3,6 +3,8 @@ package com.example.rychan.fyp.receipt_preview;
 import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.widget.CursorAdapter;
+import android.support.v7.widget.AppCompatImageView;
+import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -147,5 +149,27 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
         private ImageView imageView;
         private EditText itemName;
         private EditText itemPrice;
+    }
+
+    public class AspectRatioImageView extends AppCompatImageView {
+
+        public AspectRatioImageView(Context context) {
+            super(context);
+        }
+
+        public AspectRatioImageView(Context context, AttributeSet attrs) {
+            super(context, attrs);
+        }
+
+        public AspectRatioImageView(Context context, AttributeSet attrs, int defStyle) {
+            super(context, attrs, defStyle);
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            int width = View.MeasureSpec.getSize(widthMeasureSpec);
+            int height = width * getDrawable().getIntrinsicHeight() / getDrawable().getIntrinsicWidth();
+            setMeasuredDimension(width, height);
+        }
     }
 }

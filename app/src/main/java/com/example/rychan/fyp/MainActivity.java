@@ -47,7 +47,7 @@ public class MainActivity extends AppCompatActivity implements
     private String photoPath;
     private static final int REQUEST_CAMERA = 1;
     private static final int REQUEST_GALLERY = 2;
-    private static final int REQUEST_PERSPECTIVE_TRANSFORM = 3;
+    private static final int REQUEST_XML_PREVIEW = 3;
     private static final int REQUEST_RECOGNITION = 4;
 
     private SimpleCursorAdapter simpleCursorAdapter;
@@ -196,6 +196,11 @@ public class MainActivity extends AppCompatActivity implements
                 }
                 break;
 
+            case REQUEST_XML_PREVIEW:
+                if (resultCode == RESULT_OK && data != null) {
+                    dispatchXmlExportIntent(data.getStringExtra("xml_path"));
+                }
+
             default:
         }
     }
@@ -240,15 +245,6 @@ public class MainActivity extends AppCompatActivity implements
         startActivityForResult(galleryIntent, REQUEST_GALLERY);
     }
 
-//    private void dispatchFolderIntent() {
-//        Intent folderIntent = new Intent(Intent.ACTION_GET_CONTENT);
-//        Uri uri = Uri.parse(getExternalFilesDir(Environment.DIRECTORY_PICTURES).getPath());
-//        folderIntent.setDataAndType(uri, "image/*");
-//
-//        // Start the Intent
-//        startActivityForResult(folderIntent, REQUEST_GALLERY);
-//    }
-
     private void dispatchPerspectiveTransformIntent(String receiptPath) {
         Intent perspectiveTransformIntent = new Intent(this, PerspectiveTransformActivity.class);
         perspectiveTransformIntent.putExtra("receipt_path", receiptPath);
@@ -283,8 +279,17 @@ public class MainActivity extends AppCompatActivity implements
     private void dispatchXmlPreviewIntent() {
         Intent xmlPreviewIntent = new Intent(this, XmlPreviewActivity.class);
 
-        startActivity(xmlPreviewIntent);
+        startActivityForResult(xmlPreviewIntent, REQUEST_XML_PREVIEW);
     }
+
+    private void dispatchXmlExportIntent(String xmlPath) {
+        Intent xmlExportIntent = new Intent(Intent.ACTION_SEND);
+        xmlExportIntent.setType("application/xml");
+        xmlExportIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + xmlPath));
+
+        startActivity(xmlExportIntent);
+    }
+
 
     public String getImagePath(Uri uri){
         Cursor cursor = getContentResolver().query(uri, null, null, null, null);

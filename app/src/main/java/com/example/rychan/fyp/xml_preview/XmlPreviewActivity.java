@@ -1,5 +1,6 @@
 package com.example.rychan.fyp.xml_preview;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.Environment;
@@ -149,8 +150,13 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button:
-                writeXmlFile();
-                finish();
+                String xmlPath = writeXmlFile();
+                if (xmlPath != null) {
+                    Intent intent = new Intent();
+                    intent.putExtra("xml_path", xmlPath);
+                    setResult(RESULT_OK, intent);
+                    finish();
+                }
                 break;
 
             case R.id.start_date:
@@ -176,7 +182,7 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     }
 
 
-    private void writeXmlFile() {
+    private String writeXmlFile() {
         File outputFile = null;
         try {
             File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS + "/Fyp");
@@ -188,6 +194,8 @@ public class XmlPreviewActivity extends AppCompatActivity implements
             StringWriter stringWriter = new StringWriter();
 
             serializer.setOutput(stringWriter);
+            serializer.setFeature("http://xmlpull.org/v1/doc/features.html#indent-output", true);
+
             serializer.startDocument("UTF-8", true);
             serializer.startTag("", "report");
 
@@ -209,28 +217,30 @@ public class XmlPreviewActivity extends AppCompatActivity implements
             serializer.text(totalText.getText().toString());
             serializer.endTag("", "total");
 
+            serializer.startTag("", "item_list");
             cursor.moveToPosition(-1);
             while (cursor.moveToNext()) {
                 serializer.startTag("", "item");
-                for (String s: new String[]{ItemEntry.COLUMN_NAME,
-                        ReceiptEntry.COLUMN_SHOP, ReceiptEntry.COLUMN_DATE}) {
+                for (String s: new String[]{ItemEntry.COLUMN_NAME, ReceiptEntry.COLUMN_SHOP,
+                        ReceiptEntry.COLUMN_DATE, ItemEntry.COLUMN_PRICE}) {
                     serializer.startTag("", s);
-                    serializer.text(cursor.getString(cursor.getColumnIndex(s)));
+                    serializer.text(String.valueOf(cursor.getString(cursor.getColumnIndex(s))));
                     serializer.endTag("", s);
                 }
-
-                serializer.startTag("", ItemEntry.COLUMN_PRICE);
-                serializer.text(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
-                serializer.endTag("", ItemEntry.COLUMN_PRICE);
-
                 serializer.endTag("", "item");
             }
+            serializer.endTag("", "item_list");
+
             serializer.endTag("", "report");
             serializer.endDocument();
 
             out.write(stringWriter.toString());
             out.close();
+
+            return outputFile.getAbsolutePath();
+
         } catch (IOException e) {
+            return null;
         }
     }
 }
