@@ -29,8 +29,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+
+import static com.example.rychan.fyp.DatePickerDialogFragment.dateFormat;
 
 public class XmlPreviewActivity extends AppCompatActivity implements
         View.OnClickListener, DatePickerDialogFragment.DialogListener,
@@ -176,9 +179,19 @@ public class XmlPreviewActivity extends AppCompatActivity implements
 
     @Override
     public void getDateString(int viewId, String date) {
-        TextView textView = (TextView) findViewById(viewId);
-        textView.setText(date);
-        getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
+        try {
+            Date newDate = dateFormat.parse(date);
+            Date start = dateFormat.parse(startDate.getText().toString());
+            Date end = dateFormat.parse(endDate.getText().toString());
+            if (viewId == startDate.getId() && !end.before(newDate) ||
+                    viewId == endDate.getId() && !start.after(newDate)) {
+                TextView textView = (TextView) findViewById(viewId);
+                textView.setText(date);
+                getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
+
+            }
+        } catch (ParseException e) {
+        }
     }
 
 

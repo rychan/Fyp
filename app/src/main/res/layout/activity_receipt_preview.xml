@@ -7,6 +7,13 @@
     android:orientation="vertical"
     tools:context="com.example.rychan.fyp.receipt_preview.ReceiptPreviewActivity">
 
+    <!-- Dummy item to prevent AutoCompleteTextView from receiving focus -->
+    <LinearLayout
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:layout_width="0px"
+        android:layout_height="0px"/>
+
     <TableLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -31,7 +38,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:gravity="center" />
+                android:gravity="center"
+                android:nextFocusUp="@id/shop"
+                android:nextFocusLeft="@id/shop"/>
         </TableRow>
 
         <TableRow
@@ -105,5 +114,5 @@
         android:id="@+id/button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Save Change" />
+        android:text="Save Shop and Date Change" />
 </LinearLayout>

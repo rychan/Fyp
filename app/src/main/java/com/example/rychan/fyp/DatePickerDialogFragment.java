@@ -22,7 +22,7 @@ public class DatePickerDialogFragment extends DialogFragment implements DatePick
     public static final String ARG_DATE_STRING = "date";
     public static final String ARG_VIEW_ID = "id";
 
-    private static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+    public static final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
     private DialogListener mListener;
 

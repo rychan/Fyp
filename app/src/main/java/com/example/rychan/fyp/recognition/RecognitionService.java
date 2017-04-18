@@ -182,8 +182,35 @@ public class RecognitionService extends IntentService {
         return rowRangeList;
     }
 
-
     private RecognitionResult textRecognition(Mat src, List<Range> segmentationResult){
+        RecognitionResult recognitionResult = new RecognitionResult(
+                ".*(STARBUCKS).*",
+                "yyyy/MM/dd",
+                ".*(Total).*\\$(\\d*\\s*\\.\\s*\\d)",
+                "(.*)\\$(\\d*\\s*\\.\\s*\\d)"
+        );
+        String whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$/.";
+
+        TessBaseAPI baseApi = new TessBaseAPI();
+        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
+        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
+        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, whitelist);
+
+        for (Range r: segmentationResult) {
+            Bitmap bm = Bitmap.createBitmap(src.cols(), r.size(), Bitmap.Config.ARGB_8888);
+            Utils.matToBitmap(src.rowRange(r), bm);
+
+            baseApi.setImage(bm);
+            String result = baseApi.getUTF8Text();
+            recognitionResult.addLine(r, result);
+        }
+        baseApi.clear();
+        baseApi.end();
+        return recognitionResult;
+    }
+
+
+    private RecognitionResult textRecognition1(Mat src, List<Range> segmentationResult){
         RecognitionResult recognitionResult = new RecognitionResult(
                 ".*(STARBUCKS).*",
                 "yyyy/MM/dd",

@@ -239,7 +239,7 @@ public class DatabaseProvider extends ContentProvider {
                 break;
             case ITEM_ID:
                 String itemId = uri.getLastPathSegment();
-                count = db.update(ReceiptEntry.DATABASE_TABLE_NAME,
+                count = db.update(ItemEntry.DATABASE_TABLE_NAME,
                         values,
                         ReceiptEntry._ID +  " = " + itemId +
                                 (!TextUtils.isEmpty(selection) ? "AND (" + selection + ')' : ""),

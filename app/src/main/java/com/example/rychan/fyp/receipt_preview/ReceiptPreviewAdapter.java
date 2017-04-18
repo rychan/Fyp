@@ -1,15 +1,18 @@
 package com.example.rychan.fyp.receipt_preview;
 
+import android.content.ContentUris;
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.widget.CursorAdapter;
-import android.support.v7.widget.AppCompatImageView;
-import android.util.AttributeSet;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.example.rychan.fyp.R;
 import com.example.rychan.fyp.perspective_transform.DisplayImageFragment;
@@ -22,7 +25,8 @@ import org.opencv.core.Range;
  * Created by rychan on 17年2月12日.
  */
 
-public class ReceiptPreviewAdapter extends CursorAdapter {
+public class ReceiptPreviewAdapter extends CursorAdapter implements View.OnClickListener {
+
     private Mat src;
 
     public ReceiptPreviewAdapter(Context context, Cursor c, Mat src) {
@@ -50,7 +54,6 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
                 v = LayoutInflater.from(context).inflate(R.layout.listitem_receipt_other, parent, false);
                 holder1 = new TypeOtherHolder();
                 holder1.imageView = (ImageView) v.findViewById(R.id.image_view);
-                //holder1.textView = (TextView) convertView.findViewById(R.id.result);
                 v.setTag(holder1);
                 break;
 
@@ -59,8 +62,8 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
                 v = LayoutInflater.from(context).inflate(R.layout.listitem_receipt_item, parent, false);
                 holder2 = new TypeItemHolder();
                 holder2.imageView = (ImageView) v.findViewById(R.id.image_view);
-                holder2.itemName = (EditText) v.findViewById(R.id.item_name);
-                holder2.itemPrice = (EditText) v.findViewById(R.id.price);
+                holder2.itemName = (TextView) v.findViewById(R.id.item_name);
+                holder2.price = (TextView) v.findViewById(R.id.price);
                 v.setTag(holder2);
                 break;
 
@@ -79,67 +82,50 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
                 TypeOtherHolder holder1 = (TypeOtherHolder) view.getTag();
 
                 DisplayImageFragment.displayImage(src.rowRange(r), holder1.imageView);
-                //holder1.imageView.setId(position);
-                //holder1.imageView.setOnClickListener(this);
+                holder1.imageView.setId(cursor.getPosition());
+                holder1.imageView.setOnClickListener(this);
                 break;
 
             case ItemEntry.TYPE_ITEM:
                 TypeItemHolder holder2 = (TypeItemHolder) view.getTag();
 
                 DisplayImageFragment.displayImage(src.rowRange(r), holder2.imageView);
-//                holder2.imageView.setId(position);
-//                holder2.imageView.setOnClickListener(this);
+                holder2.imageView.setId(cursor.getPosition());
+                holder2.imageView.setOnClickListener(this);
 
                 holder2.itemName.setText(cursor.getString(cursor.getColumnIndex(ItemEntry.COLUMN_NAME)));
-//                holder2.itemName.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//                    @Override
-//                    public void onFocusChange(View v, boolean hasFocus) {
-//                        if (hasFocus) {
-//                            Log.d("Gain Focus", String.valueOf(position)+"left");
-////                                currentFocusRow = position;
-////                                currentFocusItem = 0;
-//                        } else {
-//                            Log.d("Lost Focus", String.valueOf(position)+"left");
-//                            result.text = ((EditText) v).getText().toString();
-//                            recognitionResult.computeTotal();
-//                        }
-//                    }
-//                });
+                holder2.itemName.setId(cursor.getPosition());
+                holder2.itemName.setOnClickListener(this);
 
-                holder2.itemPrice.setText(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
-//                holder2.itemPrice.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-//                    @Override
-//                    public void onFocusChange(View v, boolean hasFocus) {
-//                        if (hasFocus) {
-//                            Log.d("Gain Focus", String.valueOf(position)+"right");
-////                                currentFocusRow = position;
-////                                currentFocusItem = 1;
-//                        } else {
-//                            Log.d("Lost Focus", String.valueOf(position)+"right");
-//                            result.price = new BigDecimal(((EditText) v).getText().toString());
-//                            recognitionResult.computeTotal();
-//                        }
-//                    }
-//                });
+                holder2.price.setText(String.valueOf(cursor.getDouble(cursor.getColumnIndex(ItemEntry.COLUMN_PRICE))));
+                holder2.price.setId(cursor.getPosition());
+                holder2.price.setOnClickListener(this);
                 break;
-            default:
 
+            default:
         }
     }
 
-//    @Override
-//    public void onClick(View v) {
-//        LineResult item = getItem(v.getId());
-//        if (item.type == RecognitionResult.TYPE_ITEM) {
-//            item.type = RecognitionResult.TYPE_NULL;
-//            recognitionResult.computeTotal();
-//            notifyDataSetChanged();
-//        } else {
-//            item.type = RecognitionResult.TYPE_ITEM;
-//            recognitionResult.computeTotal();
-//            notifyDataSetChanged();
-//        }
-//    }
+    @Override
+    public void onClick(View v) {
+        Cursor cursor = getCursor();
+        cursor.moveToPosition(v.getId());
+        int itemId = cursor.getInt(cursor.getColumnIndex(ItemEntry._ID));
+        if (cursor.getInt(cursor.getColumnIndex(ItemEntry.COLUMN_TYPE)) == ItemEntry.TYPE_ITEM &&
+                v instanceof ImageView) {
+            ContentValues values = new ContentValues();
+            values.put(ItemEntry.COLUMN_TYPE, ItemEntry.TYPE_OTHER);
+            mContext.getContentResolver().update(
+                    ContentUris.withAppendedId(ReceiptProvider.ITEM_CONTENT_URI, itemId),
+                    values, null, null);
+        } else {
+            DialogFragment dialog = new UpdateItemDialog();
+            Bundle arg = new Bundle();
+            arg.putInt(UpdateItemDialog.ARG_ROW_ID, v.getId());
+            dialog.setArguments(arg);
+            dialog.show(((AppCompatActivity) mContext).getSupportFragmentManager(), "UpdateItemDialog");
+        }
+    }
 
     private static class TypeOtherHolder {
         private ImageView imageView;
@@ -147,29 +133,7 @@ public class ReceiptPreviewAdapter extends CursorAdapter {
 
     private static class TypeItemHolder {
         private ImageView imageView;
-        private EditText itemName;
-        private EditText itemPrice;
-    }
-
-    public class AspectRatioImageView extends AppCompatImageView {
-
-        public AspectRatioImageView(Context context) {
-            super(context);
-        }
-
-        public AspectRatioImageView(Context context, AttributeSet attrs) {
-            super(context, attrs);
-        }
-
-        public AspectRatioImageView(Context context, AttributeSet attrs, int defStyle) {
-            super(context, attrs, defStyle);
-        }
-
-        @Override
-        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            int width = View.MeasureSpec.getSize(widthMeasureSpec);
-            int height = width * getDrawable().getIntrinsicHeight() / getDrawable().getIntrinsicWidth();
-            setMeasuredDimension(width, height);
-        }
+        private TextView itemName;
+        private TextView price;
     }
 }

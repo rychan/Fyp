@@ -44,8 +44,7 @@
 
         <activity android:name=".perspective_transform.PerspectiveTransformActivity" />
 
-        <activity android:name=".receipt_preview.ReceiptPreviewActivity"
-            android:windowSoftInputMode="adjustPan" />
+        <activity android:name=".receipt_preview.ReceiptPreviewActivity"/>
 
         <activity android:name=".xml_preview.XmlPreviewActivity"/>
 

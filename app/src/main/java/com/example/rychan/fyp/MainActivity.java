@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.v4.app.DialogFragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
 import android.support.v4.content.FileProvider;
@@ -19,6 +20,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import com.example.rychan.fyp.receipt_preview.ReceiptPreviewActivity;
 import com.example.rychan.fyp.perspective_transform.PerspectiveTransformActivity;
@@ -37,6 +39,7 @@ import java.util.Date;
 
 public class MainActivity extends AppCompatActivity implements
         View.OnClickListener, AdapterView.OnItemClickListener,
+        AdapterView.OnItemLongClickListener, DeleteReceiptDialog.DialogListener,
         LoaderManager.LoaderCallbacks<Cursor>{
 
     // Log
@@ -51,8 +54,6 @@ public class MainActivity extends AppCompatActivity implements
     private static final int REQUEST_RECOGNITION = 4;
 
     private SimpleCursorAdapter simpleCursorAdapter;
-    private Cursor cursor;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,6 +75,8 @@ public class MainActivity extends AppCompatActivity implements
         ListView listView = (ListView) findViewById(R.id.list_view);
         listView.setAdapter(simpleCursorAdapter);
         listView.setOnItemClickListener(this);
+        listView.setLongClickable(true);
+        listView.setOnItemLongClickListener(this);
         getSupportLoaderManager().initLoader(LIST_ITEM_LOADER, null, this);
 
         Button galleryButton = (Button) findViewById(R.id.gallery_button);
@@ -132,7 +135,6 @@ public class MainActivity extends AppCompatActivity implements
         switch (loader.getId()) {
             case LIST_ITEM_LOADER:
                 simpleCursorAdapter.swapCursor(data);
-                cursor = data;
             default:
         }
     }
@@ -148,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+        Cursor cursor = simpleCursorAdapter.getCursor();
         if (cursor.moveToPosition(i)) {
             if (cursor.getInt(cursor.getColumnIndex(ReceiptEntry.COLUMN_STATUS)) != ReceiptEntry.STATUS_PROCESSING) {
                 int receiptId = cursor.getInt(cursor.getColumnIndex(ReceiptEntry._ID));
@@ -160,6 +163,37 @@ public class MainActivity extends AppCompatActivity implements
             }
         }
     }
+
+    @Override
+    public boolean onItemLongClick(AdapterView<?> adapterView, View view, int i, long l) {
+        Cursor cursor = simpleCursorAdapter.getCursor();
+        if (cursor.moveToPosition(i)) {
+            if (cursor.getInt(cursor.getColumnIndex(ReceiptEntry.COLUMN_STATUS)) != ReceiptEntry.STATUS_PROCESSING) {
+                DialogFragment dialogFragment = new DeleteReceiptDialog();
+                Bundle arg = new Bundle();
+                arg.putString(DeleteReceiptDialog.ARG_FILE_PATH,
+                        cursor.getString(cursor.getColumnIndex(ReceiptEntry.COLUMN_FILE)));
+                arg.putInt(DeleteReceiptDialog.ARG_RECEIPT_ID,
+                        cursor.getInt(cursor.getColumnIndex(ReceiptEntry._ID)));
+                dialogFragment.setArguments(arg);
+                dialogFragment.show(getSupportFragmentManager(), "delete_receipt");
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public void onDialogPositiveClick(String filePath, int receiptId) {
+        File file = new File(filePath);
+        if (!file.delete()) {
+            Toast.makeText(this, "Unable to delete binary image file", Toast.LENGTH_LONG).show();
+        } else {
+            getContentResolver().delete(
+                    ContentUris.withAppendedId(ReceiptProvider.RECEIPT_CONTENT_URI, receiptId),
+                    null, null);
+        }
+    }
+
 
     @Override
     public void onClick(View view) {
