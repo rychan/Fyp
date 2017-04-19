@@ -3,7 +3,9 @@ package com.example.rychan.fyp.recognition;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
+import android.database.Cursor;
 
+import com.example.rychan.fyp.DatePickerDialogFragment;
 import com.example.rychan.fyp.provider.Contract.*;
 
 import org.opencv.core.Range;
@@ -21,33 +23,57 @@ import java.util.regex.Pattern;
  */
 public class RecognitionResult{
 
-    private DateFormat dateFormat;
+    private DateFormat dateFormat = DatePickerDialogFragment.dateFormat;
+    private Pattern datePattern = Pattern.compile(".*(\\d{4}\\d{2}\\d{2}).*");;
+    private Pattern totalPattern = Pattern.compile(".*(Total|小計).*(\\d*\\s*\\.\\s*\\d).*");
+    private Pattern itemPattern = Pattern.compile("(.*)\\s+.*(\\d*\\s*\\.\\s*\\d).*");
 
-    private Pattern shopPattern;
-    private Pattern datePattern;
-    private Pattern totalPattern;
-    private Pattern itemPattern;
-
-    private String shopName = null;
+    private String shop = null;
     private String date = null;
     private double total = 0;
-    private List<LineResult> resultList;
+    private List<LineResult> resultList = new ArrayList<>();
 
     private boolean shopFound = false;
     private boolean dateFound = false;
     private boolean totalFound = false;
 
+    private Cursor cursor;
 
-    public RecognitionResult(String shopRegex, String dateFormat, String totalRegex, String itemRegex) {
-        this.shopPattern = Pattern.compile(shopRegex);
-        this.dateFormat = new SimpleDateFormat(dateFormat);
-        this.datePattern = Pattern.compile(".*(" + dateFormat.replaceAll("\\w","\\d") + ").*");
-        this.totalPattern = Pattern.compile(totalRegex);
-        this.itemPattern = Pattern.compile(itemRegex);
-        this.resultList = new ArrayList<>();
+
+    public RecognitionResult(Cursor cursor) {
+        this.cursor = cursor;
     }
 
-    public void addLine(Range r, String s) {
+    public boolean addEngLine(Range r, String s) {
+        LineResult lineResult = new LineResult(r, s);
+        if (shopFound) {
+            lineResult.classify();
+            resultList.add(lineResult);
+            return true;
+
+        } else if (shopFound = lineResult.findShop()) {
+
+            String dateString = cursor.getString(cursor.getColumnIndex( DATE ));
+            dateFormat = new SimpleDateFormat(dateString);
+            datePattern = Pattern.compile(".*(" + dateString.replaceAll("\\w","\\d") + ").*");
+            totalPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex( TOTAL )));
+            itemPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex( ITEM )));
+
+            if (cursor.getColumnIndex( LANG ) == "eng") {
+                resultList.add(lineResult);
+                for (LineResult l : resultList) {
+                    l.classify();
+                }
+                return true;
+
+            } else {
+                resultList.clear();
+            }
+        }
+        return false;
+    }
+
+    public void addChiLine(Range r, String s) {
         LineResult lineResult = new LineResult(r, s);
         lineResult.classify();
         resultList.add(lineResult);
@@ -56,7 +82,11 @@ public class RecognitionResult{
     public void save(ContentResolver contentResolver, int receiptId) {
         ContentValues values = new ContentValues();
         if (shopFound) {
-            values.put(ReceiptEntry.COLUMN_SHOP, shopName);
+            values.put(ReceiptEntry.COLUMN_SHOP, shop);
+        } else {
+            for (LineResult l : resultList) {
+                l.classify();
+            }
         }
         if (dateFound) {
             values.put(ReceiptEntry.COLUMN_DATE, date);
@@ -83,32 +113,38 @@ public class RecognitionResult{
         }
     }
 
+
     public class LineResult {
         String text;
-        double price;
-        int type;
+        double price = 0;
+        int type = ItemEntry.TYPE_OTHER;
         int startRow;
         int endRow;
 
         LineResult(Range r, String s) {
             this.text = s;
-            this.price = 0;
             this.startRow = r.start;
             this.endRow = r.end;
-            this.type = ItemEntry.TYPE_OTHER;
+        }
+
+        public boolean findShop() {
+            cursor.moveToPosition(-1);
+            while (cursor.moveToNext()) {
+                String s = cursor.getString(cursor.getColumnIndex( )); //TODO ));
+                if (text.replace("\\s","").contains(s)) {
+                    shop = s;
+                    return true;
+                }
+            }
+            return false;
         }
 
         public void classify() {
-            Matcher shopMatcher = shopPattern.matcher(text.replace("\\s",""));
             Matcher totalMatcher = totalPattern.matcher(text);
             Matcher itemMatcher = itemPattern.matcher(text);
             Matcher dateMatcher = datePattern.matcher(text);
 
-            if (!shopFound && shopMatcher.find()) {
-                text = shopMatcher.group(1);
-                shopName = text;
-                shopFound = true;
-            } else if (!totalFound && totalMatcher.find()) {
+            if (!totalFound && totalMatcher.find()) {
                 text = totalMatcher.group(1);
                 price = string2double(totalMatcher.group(2).replace("\\s",""));
                 total = price;
@@ -119,7 +155,7 @@ public class RecognitionResult{
                 type = ItemEntry.TYPE_ITEM;
             } else if (!dateFound && dateMatcher.find()) {
                 try {
-                    DateFormat databaseFormat = new SimpleDateFormat("yyyy-MM-dd");
+                    DateFormat databaseFormat = DatePickerDialogFragment.dateFormat;
                     text = dateMatcher.group(1);
                     date = databaseFormat.format(dateFormat.parse(text));
                     dateFound = true;

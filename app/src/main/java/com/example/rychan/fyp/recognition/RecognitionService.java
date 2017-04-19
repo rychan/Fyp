@@ -184,10 +184,7 @@ public class RecognitionService extends IntentService {
 
     private RecognitionResult textRecognition(Mat src, List<Range> segmentationResult){
         RecognitionResult recognitionResult = new RecognitionResult(
-                ".*(STARBUCKS).*",
-                "yyyy/MM/dd",
-                ".*(Total).*\\$(\\d*\\s*\\.\\s*\\d)",
-                "(.*)\\$(\\d*\\s*\\.\\s*\\d)"
+                //TODO
         );
         String whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$/.";
 
@@ -202,7 +199,7 @@ public class RecognitionService extends IntentService {
 
             baseApi.setImage(bm);
             String result = baseApi.getUTF8Text();
-            recognitionResult.addLine(r, result);
+            recognitionResult.addEngLine(r, result);
         }
         baseApi.clear();
         baseApi.end();
@@ -230,7 +227,7 @@ public class RecognitionService extends IntentService {
 
             baseApi.setImage(bm);
             String result = baseApi.getUTF8Text();
-            recognitionResult.addLine(r, result);
+            recognitionResult.addEngLine(r, result);
         }
         baseApi.clear();
         baseApi.end();
