@@ -1,6 +1,6 @@
 /*
  * This file is auto-generated.  DO NOT MODIFY.
- * Original file: /Users/Richard/Documents/Backup/HKUST/fyp_cs/Fyp/libraries/opencv/src/org/opencv/engine/OpenCVEngineInterface.aidl
+ * Original file: /home/rychan/AndroidStudioProjects/Fyp/libraries/opencv/src/org/opencv/engine/OpenCVEngineInterface.aidl
  */
 package org.opencv.engine;
 /**
