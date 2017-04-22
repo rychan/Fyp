@@ -6,6 +6,8 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Environment;
 
+import com.example.rychan.fyp.R;
+import com.example.rychan.fyp.provider.Contract.*;
 import com.googlecode.tesseract.android.TessBaseAPI;
 
 import org.opencv.android.Utils;
@@ -46,7 +48,8 @@ public class RecognitionService extends IntentService {
             String receiptPath = intent.getStringExtra(RECEIPT_PATH);
             int receiptId = intent.getIntExtra(RECEIPT_ID, -1);
             Mat src = Imgcodecs.imread(receiptPath, 0);
-            List<Range> segmentationResult = segmentation(src);
+
+            List<Range> segmentationResult = segmentation(src, 0);
             RecognitionResult recognitionResult = textRecognition(src, segmentationResult);
             recognitionResult.save(getContentResolver(), receiptId);
         }
@@ -104,7 +107,7 @@ public class RecognitionService extends IntentService {
         return rowRangeList;
     }
 
-    private List<Range> segmentation(Mat srcBinary) {
+    private List<Range> segmentation(Mat srcBinary, int mode) {
 
         int width = srcBinary.cols();
         int height = srcBinary.rows();
@@ -113,11 +116,27 @@ public class RecognitionService extends IntentService {
         Core.reduce(srcBinary, rowSum, 1, Core.REDUCE_SUM, CvType.CV_32S);
         rowSum.convertTo(rowSum, CvType.CV_8U, 1.0/width);
 
-        Mat mean = new Mat();
-        Core.reduce(rowSum, mean, 0, Core.REDUCE_AVG);
+        double threshold = 250;
+        switch (mode) {
+            case 0:
+                Mat sortedSum = new Mat();
+                Core.sort(rowSum, sortedSum, Core.SORT_ASCENDING | Core.SORT_EVERY_COLUMN);
+                if ((height & 1) == 1) {
+                    threshold = sortedSum.get((height - 1) / 2, 0)[0];
+                } else {
+                    threshold = (sortedSum.get((height) / 2, 0)[0] + sortedSum.get((height) / 2 - 1, 0)[0]) / 2;
+                }
+                break;
+            case 1:
+                Mat mean = new Mat();
+                Core.reduce(rowSum, mean, 0, Core.REDUCE_AVG);
+                break;
+
+            default:
+        }
 
         Mat rowMask = new Mat();
-        Imgproc.threshold(rowSum, rowMask, mean.get(0, 0)[0], 255, Imgproc.THRESH_BINARY_INV);
+        Imgproc.threshold(rowSum, rowMask, threshold, 255, Imgproc.THRESH_BINARY_INV);
 
         Mat kernel = new Mat(5, 1, CvType.CV_8UC1, Scalar.all(255));
         Imgproc.morphologyEx(rowMask, rowMask, Imgproc.MORPH_DILATE, kernel);
@@ -184,14 +203,14 @@ public class RecognitionService extends IntentService {
 
     private RecognitionResult textRecognition(Mat src, List<Range> segmentationResult){
         RecognitionResult recognitionResult = new RecognitionResult(
-                //TODO
-        );
-        String whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$/.";
+                getContentResolver().query(ReceiptProvider.FORMAT_CONTENT_URI,
+                        null, null, null, null, null));
+        boolean isChi = false;
 
         TessBaseAPI baseApi = new TessBaseAPI();
         baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
         baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
-        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, whitelist);
+        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, getResources().getString(R.string.eng_whitelist));
 
         for (Range r: segmentationResult) {
             Bitmap bm = Bitmap.createBitmap(src.cols(), r.size(), Bitmap.Config.ARGB_8888);
@@ -199,20 +218,37 @@ public class RecognitionService extends IntentService {
 
             baseApi.setImage(bm);
             String result = baseApi.getUTF8Text();
-            recognitionResult.addEngLine(r, result);
+            if (isChi = !recognitionResult.addEngLine(r, result)) {
+                break;
+            }
         }
         baseApi.clear();
         baseApi.end();
+
+        if (isChi) {
+            baseApi = new TessBaseAPI();
+            baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
+            baseApi.init(Environment.getExternalStorageDirectory().getPath(), "chi_tra");
+            baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, getResources().getString(R.string.chi_whitelist));
+
+            for (Range r: segmentationResult) {
+                Bitmap bm = Bitmap.createBitmap(src.cols(), r.size(), Bitmap.Config.ARGB_8888);
+                Utils.matToBitmap(src.rowRange(r), bm);
+
+                baseApi.setImage(bm);
+                String result = baseApi.getUTF8Text();
+                recognitionResult.addChiLine(r, result);
+            }
+            baseApi.clear();
+            baseApi.end();
+        }
         return recognitionResult;
     }
 
 
     private RecognitionResult textRecognition1(Mat src, List<Range> segmentationResult){
         RecognitionResult recognitionResult = new RecognitionResult(
-                ".*(STARBUCKS).*",
-                "yyyy/MM/dd",
-                ".*(Total).*\\$(\\d*\\s*\\.\\s*\\d)",
-                "(.*)\\$(\\d*\\s*\\.\\s*\\d)"
+            null
         );
         String whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$/.";
 

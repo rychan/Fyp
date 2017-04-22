@@ -42,11 +42,17 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".perspective_transform.PerspectiveTransformActivity" />
+        <activity android:name=".perspective_transform.PerspectiveTransformActivity"
+            android:label="Prespective Transformation"
+            android:screenOrientation="portrait"/>
 
-        <activity android:name=".receipt_preview.ReceiptPreviewActivity"/>
+        <activity android:name=".receipt_preview.ReceiptPreviewActivity"
+            android:label="Preview Receipt"
+            android:screenOrientation="portrait"/>
 
-        <activity android:name=".xml_preview.XmlPreviewActivity"/>
+        <activity android:name=".xml_preview.XmlPreviewActivity"
+            android:label="Preview XML"
+            android:screenOrientation="portrait"/>
 
         <provider
             android:name="android.support.v4.content.FileProvider"

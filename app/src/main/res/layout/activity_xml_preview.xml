@@ -38,7 +38,8 @@
                 android:background="@drawable/click_effect"
                 android:gravity="center"
                 android:textColor="@android:color/black"
-                android:textSize="18sp" />
+                android:textSize="18sp"
+                android:clickable="true"/>
         </TableRow>
 
         <TableRow

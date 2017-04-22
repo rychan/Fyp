@@ -34,7 +34,7 @@
             android:layout_height="match_parent"
             android:layout_weight="0"
             android:ems="4"
-            android:inputType="numberSigned|numberDecimal"
+            android:inputType="numberDecimal"
             android:gravity="end" />
     </LinearLayout>
 </LinearLayout>

@@ -24,9 +24,9 @@ import java.util.regex.Pattern;
 public class RecognitionResult{
 
     private DateFormat dateFormat = DatePickerDialogFragment.dateFormat;
-    private Pattern datePattern = Pattern.compile(".*(\\d{4}\\d{2}\\d{2}).*");;
-    private Pattern totalPattern = Pattern.compile(".*(Total|小計).*(\\d*\\s*\\.\\s*\\d).*");
-    private Pattern itemPattern = Pattern.compile("(.*)\\s+.*(\\d*\\s*\\.\\s*\\d).*");
+    private Pattern datePattern = Pattern.compile(".*(\\d{4}-\\d{2}-\\d{2}).*");;
+    private Pattern totalPattern = Pattern.compile(".*(Total|小計)\\D*(\\d*\\s*\\.\\s*\\d{1,2}).*");
+    private Pattern itemPattern = Pattern.compile("(.*)\\s+\\D*(\\d*\\s*\\.\\s*\\d{1,2}).*");
 
     private String shop = null;
     private String date = null;
@@ -53,13 +53,13 @@ public class RecognitionResult{
 
         } else if (shopFound = lineResult.findShop()) {
 
-            String dateString = cursor.getString(cursor.getColumnIndex( DATE ));
+            String dateString = cursor.getString(cursor.getColumnIndex(FormatEntry.COLUMN_DATE_FORMAT));
             dateFormat = new SimpleDateFormat(dateString);
-            datePattern = Pattern.compile(".*(" + dateString.replaceAll("\\w","\\d") + ").*");
-            totalPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex( TOTAL )));
-            itemPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex( ITEM )));
+            datePattern = Pattern.compile(".*(" + dateString.replaceAll("\\w", "\\\\d") + ").*");
+            totalPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex(FormatEntry.COLUMN_TOTAL_FORMAT)));
+            itemPattern = Pattern.compile(cursor.getString(cursor.getColumnIndex(FormatEntry.COLUMN_ITEM_FORMAT )));
 
-            if (cursor.getColumnIndex( LANG ) == "eng") {
+            if (cursor.getString(cursor.getColumnIndex(FormatEntry.COLUMN_LANG)).equals("eng")) {
                 resultList.add(lineResult);
                 for (LineResult l : resultList) {
                     l.classify();
@@ -68,9 +68,12 @@ public class RecognitionResult{
 
             } else {
                 resultList.clear();
+                return false;
             }
+        } else {
+            resultList.add(lineResult);
+            return true;
         }
-        return false;
     }
 
     public void addChiLine(Range r, String s) {
@@ -91,17 +94,15 @@ public class RecognitionResult{
         if (dateFound) {
             values.put(ReceiptEntry.COLUMN_DATE, date);
         }
-        if (totalFound) {
-            values.put(ReceiptEntry.COLUMN_TOTAL, total);
-        } else {
-            double temp = 0;
+        if (!totalFound) {
+            total = 0;
             for (LineResult l : resultList) {
                 if (l.type == ItemEntry.TYPE_ITEM) {
-                    temp += l.price;
+                    total += l.price;
                 }
             }
-            values.put(ReceiptEntry.COLUMN_TOTAL, temp);
         }
+        values.put(ReceiptEntry.COLUMN_TOTAL, total);
 
         values.put(ReceiptEntry.COLUMN_STATUS, ReceiptEntry.STATUS_NEW);
         contentResolver.update(
@@ -130,8 +131,9 @@ public class RecognitionResult{
         public boolean findShop() {
             cursor.moveToPosition(-1);
             while (cursor.moveToNext()) {
-                String s = cursor.getString(cursor.getColumnIndex( )); //TODO ));
-                if (text.replace("\\s","").contains(s)) {
+                String noSpace = text.replaceAll("\\s+","");
+                String s = cursor.getString(cursor.getColumnIndex(FormatEntry.COLUMN_SHOP));
+                if (noSpace.contains(s)) {
                     shop = s;
                     return true;
                 }

@@ -11,6 +11,20 @@ public final class Contract {
 
     public Contract(){}
 
+    public static abstract class FormatEntry implements BaseColumns {
+        public static final String COLUMN_SHOP = "shop";
+        public static final String COLUMN_LANG = "lang";
+        public static final String COLUMN_DATE_FORMAT = "date_format";
+        public static final String COLUMN_TOTAL_FORMAT = "total_format";
+        public static final String COLUMN_ITEM_FORMAT = "item_format";
+
+        public static final String DATABASE_TABLE_NAME = "format_table";
+
+        public static final String[] ALL_COLUMN = {_ID, COLUMN_SHOP, COLUMN_LANG,
+                COLUMN_DATE_FORMAT, COLUMN_TOTAL_FORMAT, COLUMN_ITEM_FORMAT};
+    }
+
+
     public static abstract class ReceiptEntry implements BaseColumns {
 
         public static final String COLUMN_SHOP = "shop";
@@ -21,7 +35,6 @@ public final class Contract {
         public static final int STATUS_PROCESSING = 0;
         public static final int STATUS_NEW = 1;
         public static final int STATUS_OLD = 2;
-        public static final String[] STATUS = {"Processing", "To be verified", "Old"};
 
         public static final String DATABASE_TABLE_NAME = "receipt_table";
 
@@ -52,12 +65,18 @@ public final class Contract {
     public static abstract class ReceiptProvider {
 
         public static final String AUTHORITY = "com.example.rychan.fyp.provider";
+        public static final String FORMAT = "format";
         public static final String RECEIPT = "receipt";
         public static final String ITEM = "item";
+        public static final String SHOP_LIST = "shop_list";
 
+        public static final Uri FORMAT_CONTENT_URI = Uri.parse("content://" + AUTHORITY
+                + "/" + FORMAT);
         public static final Uri RECEIPT_CONTENT_URI = Uri.parse("content://" + AUTHORITY
                 + "/" + RECEIPT);
         public static final Uri ITEM_CONTENT_URI = Uri.parse("content://" + AUTHORITY
                 + "/" + ITEM);
+        public static final Uri SHOP_LIST_CONTENT_URI = Uri.parse("content://" + AUTHORITY
+                + "/" + SHOP_LIST);
     }
 }

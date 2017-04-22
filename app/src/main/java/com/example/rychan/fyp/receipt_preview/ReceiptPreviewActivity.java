@@ -118,9 +118,7 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
 
             case AUTO_COMPLETE_LOADER:
                 return new CursorLoader(this,
-                        ReceiptProvider.RECEIPT_CONTENT_URI,
-                        new String[]{ReceiptEntry._ID, ReceiptEntry.COLUMN_SHOP},
-                        null, null, null);
+                        ReceiptProvider.SHOP_LIST_CONTENT_URI, null, null, null, null);
 
             default:
                 throw new IllegalArgumentException("Unknown loader id");
