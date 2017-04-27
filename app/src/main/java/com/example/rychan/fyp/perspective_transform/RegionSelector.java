@@ -175,8 +175,7 @@ public class RegionSelector extends FrameLayout {
         canvas.drawLine(pointer2.getX() + (pointer2.getWidth() / 2),
                 pointer2.getY() + (pointer2.getHeight() / 2),
                 pointer4.getX() + (pointer4.getWidth() / 2),
-                pointer4.getY() + (pointer4.getHeight() / 2),
-                paint);
+                pointer4.getY() + (pointer4.getHeight() / 2), paint);
         canvas.drawLine(pointer3.getX() + (pointer3.getWidth() / 2),
                 pointer3.getY() + (pointer3.getHeight() / 2),
                 pointer4.getX() + (pointer4.getWidth() / 2),

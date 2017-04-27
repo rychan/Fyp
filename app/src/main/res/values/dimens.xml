@@ -9,6 +9,8 @@
     <dimen name="small_text_margin">5dp</dimen>
     <dimen name="big_text_padding">30dp</dimen>
 
+    <dimen name="state_bar_margin">2dp</dimen>
+
     <dimen name="scan_padding">20dp</dimen>
     <dimen name="region_selector_circle_width">40dp</dimen>
     <dimen name="region_selector_stroke_width">2dp</dimen>

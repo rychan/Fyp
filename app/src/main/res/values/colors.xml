@@ -4,11 +4,13 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
 
-    <color name="blue">#ff59a9ff</color>
+    <color name="background">#fafafa</color>
+
+    <color name="blue">#59a9ff</color>
     <color name="orange">#ffff900d</color>
     <color name="bottom_background_color">#ffc4c2bc</color>
 
-    <color name="regionSelectorCircleStrokeColor">#ff59a9ff</color>
+    <color name="regionSelectorCircleStrokeColor">#59a9ff</color>
     <color name="regionSelectorCircleBackground">#90e5f8ff</color>
 
     <color name="item_background">#ede39e</color>

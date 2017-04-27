@@ -4,9 +4,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.PointF;
 import android.net.Uri;
-import android.os.Environment;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
@@ -22,7 +20,11 @@ import com.example.rychan.fyp.recognition.RecognitionService;
 
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
 import org.opencv.core.Point;
+import org.opencv.core.Rect;
+import org.opencv.core.RotatedRect;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 import org.opencv.imgproc.Imgproc;
@@ -39,16 +41,21 @@ import java.util.List;
 
 public class PerspectiveTransformActivity extends AppCompatActivity implements
         HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor,
-        BinarizationSettingDialog.DialogListener {
+        BinarizationSettingDialog.DialogListener, ReceiptNumberDialog.DialogListener,
+        StateBar.OnTabChangeListener {
 
-    private Bundle args;
+    private String imagePath;
 
-    private List<PointF> pointListResult;
-    private Size frameSizeResult;
+    private StateBar stateBar;
+
+    private int currentDisplay = 0;
+    private List<List<Point>> boundaryList;
 
     private int blurBlockSize;
     private int thresholdBlockSize;
     private double thresholdConstant;
+
+    private int receiptNum;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,8 +63,9 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         setContentView(R.layout.activity_perspective_transform);
 
         Intent intent = getIntent();
-        args = new Bundle();
-        args.putString(DisplayImageFragment.ARG_IMAGE_PATH, intent.getStringExtra("receipt_path"));
+        imagePath = intent.getStringExtra("receipt_path");
+
+        stateBar = (StateBar) findViewById(R.id.state_bar);
 
         getBinarizationSetting();
 
@@ -72,13 +80,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
                 return;
             }
 
-            // Create a new Fragment to be placed in the activity layout
-            HoughResultFragment houghFragment = new HoughResultFragment();
-            houghFragment.setArguments(args);
-
-            // Add the fragment to the 'fragment_container' FrameLayout
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.fragment_container, houghFragment).commit();
+            DialogFragment dialog = new ReceiptNumberDialog();
+            dialog.show(getSupportFragmentManager(), "ReceiptNumberDialog");
         }
     }
 
@@ -87,6 +90,18 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         blurBlockSize = binarizationSetting.getInt("BLUR_BLOCK_SIZE", 5);
         thresholdBlockSize = binarizationSetting.getInt("THRESHOLD_BLOCK_SIZE", 101);
         thresholdConstant = Double.valueOf(binarizationSetting.getString("THRESHOLD_CONSTANT", "6.0"));
+    }
+
+    @Override
+    public void onNumSelected(int num) {
+        receiptNum = num;
+        stateBar.setTabState(true, receiptNum);
+
+        // Create a new Fragment to be placed in the activity layout
+        // Add the fragment to the 'fragment_container' FrameLayout
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.fragment_container, HoughResultFragment.newInstance(imagePath), "HOUGH_FRAGMENT")
+                .commit();
     }
 
     @Override
@@ -114,13 +129,18 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         }
     }
 
-
-    private PointF scale2PointF(Point cvPoint, Point scale) {
-        return new PointF((float) ((cvPoint.x + 0.5) * scale.x), (float) ((cvPoint.y + 0.5) * scale.y));
-    }
-
-    private Point pointF2cvPoint(PointF pointF) {
-        return new Point(pointF.x, pointF.y);
+    @Override
+    public void onTabChange(int tab) {
+        Fragment f = getSupportFragmentManager().findFragmentByTag("HOUGH_FRAGMENT");
+        if (f != null && f.isVisible()) {
+            ((HoughResultFragment) f).setVisiblility(tab);
+        } else {
+            f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+            if (f != null && f.isVisible()) {
+                currentDisplay = tab - 1;
+                ((DisplayImageFragment) f).processAndDisplay();
+            }
+        }
     }
 
 
@@ -167,8 +187,123 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         }
     }
 
+    class AreaComparator implements Comparator<MatOfPoint>{
+        @Override
+        public int compare(MatOfPoint a, MatOfPoint b){
+            return (Imgproc.contourArea(a) < Imgproc.contourArea(b)) ? -1 : (Imgproc.contourArea(a) == Imgproc.contourArea(b)) ? 0 : 1;
+        }
+    }
+
     @Override
-    public List<PointF> houghTransform(Mat srcBGR, Size frameSize) {
+    public List<Rect> detectReceipt(Mat src) {
+//        List<Rect> subMatList = new ArrayList<>();
+//        subMatList.add(new Rect(0, 0, src.width(), src.height()));
+//        return subMatList;
+
+        return multipleReceiptsDetector(src, receiptNum);
+    }
+
+    private List<Rect> multipleReceiptsDetector(Mat img, int numberOfReceipts){
+        // Gray scale
+        Mat gray = new Mat();
+        Imgproc.cvtColor(img, gray, Imgproc.COLOR_BGR2GRAY);
+        Mat adaptiveGray = new Mat();
+        Mat medianImg = new Mat();
+        Mat medianBin = new Mat();
+
+        // median blur + adaptive gaussian threshold
+        Imgproc.medianBlur(gray, medianImg, 5);
+        Imgproc.adaptiveThreshold(medianImg, adaptiveGray, 255, Imgproc.ADAPTIVE_THRESH_GAUSSIAN_C, Imgproc.THRESH_BINARY, 35, 0);
+        Imgproc.medianBlur(adaptiveGray, medianBin, 5);
+        List<MatOfPoint> contours = new ArrayList<>();
+
+        // find all contours
+        Imgproc.findContours(medianBin, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
+        Collections.sort(contours, Collections.reverseOrder(new AreaComparator()));
+
+        // init drewContours to store and prevent overlapping
+        List<MatOfPoint2f> drewContours = new ArrayList<>();
+//        List<Point[]> drewContours = new ArrayList<>();
+        // prevent unreasonable contour like background
+        double maxArea = img.width() * img.height() / numberOfReceipts;
+
+        // Counters of DrewContours
+        int numberOfDrewContours = 0;
+
+        // Counters of Contours iterated
+        int indexOfContours = 0;
+        List<Rect> outputList = new ArrayList<>();
+
+        double upperBoundOfWHRatio = 4.0;
+        double lowerBoundOfWHRatio = 1/upperBoundOfWHRatio;
+
+        int expandMargin = 10;
+
+        int imgw = img.width();
+        int imgh = img.height();
+
+        while (numberOfDrewContours < numberOfReceipts && indexOfContours < contours.size()) {
+            MatOfPoint contour = contours.get(indexOfContours);
+            MatOfPoint2f contour2F = new MatOfPoint2f();
+            contour.convertTo(contour2F, CvType.CV_32F);
+
+            RotatedRect rect = Imgproc.minAreaRect(contour2F);
+            Point[] points = new Point[4];
+            rect.points(points);
+            contour2F.fromArray(points);
+
+            // prevent long rectangle
+            double whRatio = rect.size.width/rect.size.height;
+
+            if(Imgproc.contourArea(contour) < maxArea && (whRatio > lowerBoundOfWHRatio && whRatio < upperBoundOfWHRatio)){
+                boolean overlapped = false;
+                int numberOfDrew = numberOfDrewContours;
+                // See if there is Drew Contour
+                if (numberOfDrew > 0) {
+                    for(int i = 0; i < numberOfDrew; i++){
+                        List<Point> contourList = contour2F.toList();
+                        for(int j = 0; j < contourList.size(); ++j){
+                            MatOfPoint2f a = drewContours.get(i);
+                            Point b = contourList.get(j);
+                            double insideContour = Imgproc.pointPolygonTest(a, b, false);
+                            if (insideContour >= 0) {
+                                overlapped = true;
+                            }
+                        }
+                    }
+                }
+                if(!overlapped){
+                    ++numberOfDrewContours;
+                    drewContours.add(contour2F);
+                    Rect outputRect = Imgproc.boundingRect(contour);
+//                    int x0 = outputRect.x - expandMargin;
+//                    int x1 = outputRect.x + expandMargin + outputRect.width;
+//                    int y0 = outputRect.y - expandMargin;
+//                    int y1 = outputRect.y + expandMargin + outputRect.height;
+//                    x0 = x0 < 0 ? 0 : x0;
+//                    y0 = y0 < 0 ? 0 : x0;
+//                    x1 = x1 > imgw ? imgw : x1;
+//                    y1 = y1 > imgh ? imgh : y1;
+
+//                    outputList.add(new Rect(x0, y0, x1-x0, y1-y0));
+//                    Imgproc.drawContours(img, contours, indexOfContours, new Scalar(0,0,255), 5);
+//                    Imgproc.rectangle(img, new Point(x0,y0), new Point(x1,y1), new Scalar(255,0,255), 5);
+
+
+                    outputList.add(outputRect);
+//                    Imgproc.drawContours(img, contours, indexOfContours, new Scalar(0,0,255), 5);
+//                    Imgproc.rectangle(img, outputRect.tl(), outputRect.br(), new Scalar(255,0,255), 5);
+
+                    // Mat to List of Point?
+            }
+        }
+        ++indexOfContours;
+    }
+    return outputList;
+}
+
+    @Override
+    public List<Point> houghTransform(Mat srcBGR) {
 
         // resize mat2 to resizeBGR to reduce computation
         Mat resizeBGR = new Mat();
@@ -230,34 +365,33 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         Collections.sort(horizontals, new yComparator());
         Collections.sort(verticals, new xComparator());
 
-        Point topLeft = horizontals.get(0).intersection(verticals.get(0));
-        Point topRight = horizontals.get(0).intersection(verticals.get(verticals.size() - 1));
-        Point bottomLeft = horizontals.get(horizontals.size() - 1).intersection(verticals.get(0));
-        Point bottomRight = horizontals.get(horizontals.size() - 1).intersection(verticals.get(verticals.size() - 1));
+        List<Point> resizePointList = new ArrayList<>(4);
+        resizePointList.add(horizontals.get(0).intersection(verticals.get(0)));
+        resizePointList.add(horizontals.get(0).intersection(verticals.get(verticals.size() - 1)));
+        resizePointList.add(horizontals.get(horizontals.size() - 1).intersection(verticals.get(0)));
+        resizePointList.add(horizontals.get(horizontals.size() - 1).intersection(verticals.get(verticals.size() - 1)));
 
-        Point scale = new Point(frameSize.width / width / resizeScale, frameSize.height / height / resizeScale);
-        List<PointF> pointList = new ArrayList<>(4);
-        pointList.add(scale2PointF(topLeft, scale));
-        pointList.add(scale2PointF(topRight, scale));
-        pointList.add(scale2PointF(bottomLeft, scale));
-        pointList.add(scale2PointF(bottomRight, scale));
+        List<Point> pointList = new ArrayList<>(4);
+        for (Point point : resizePointList) {
+            pointList.add(new Point((point.x + 0.5) / resizeScale, (point.y + 0.5) / resizeScale));
+        }
+
         return pointList;
     }
 
     @Override
-    public void onHoughResult(List<PointF> pointList, Size frameSize) {
-        pointListResult = pointList;
-        frameSizeResult = frameSize;
-
-        // Create new fragment
-        DisplayImageFragment newFragment = new DisplayImageFragment();
-        newFragment.setArguments(args);
+    public void onBoundaryDetected(List<List<Point>> boundaryList) {
+        this.boundaryList = boundaryList;
+        stateBar.setTabState(false, receiptNum);
+        currentDisplay = 0;
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
+        // Create new fragment
         // Replace whatever is in the fragment_container view with this fragment,
         // and add the transaction to the back stack so the user can navigate back
-        transaction.replace(R.id.fragment_container, newFragment, "RESULT_FRAGMENT");
+        transaction.replace(R.id.fragment_container, DisplayImageFragment.newInstance(imagePath),
+                "RESULT_FRAGMENT");
         transaction.addToBackStack(null);
 
         // Commit the transaction
@@ -265,8 +399,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     }
 
     @Override
-    public Mat processImage(Mat srcMat) {
-        return pTransform(srcMat, pointListResult, frameSizeResult);
+    public Mat processImage(Mat src) {
+        return pTransform(src, boundaryList.get(currentDisplay));
     }
 
     @Override
@@ -297,26 +431,33 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
             int receiptId = Integer.valueOf(uri.getLastPathSegment());
 
             RecognitionService.startActionRecognition(this, receiptPath, receiptId);
-            finish();
+            stateBar.setUnclickable(currentDisplay + 1);
+            ++currentDisplay;
+            if (currentDisplay < boundaryList.size()) {
+                Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+                if (f != null) {
+                    ((DisplayImageFragment) f).processAndDisplay();
+                }
+            } else {
+                finish();
+            }
         }
     }
 
-    private Mat pTransform(Mat srcBGR, List<PointF> pointList, Size frameSize) {
+    private Mat pTransform(Mat src, List<Point> boundary) {
 
         /* perspective transformation */
-        double xScale = srcBGR.width() / frameSize.width;
-        double yScale = srcBGR.height() / frameSize.height;
 
-        // find intersection points
-        Point topLeft = pointF2cvPoint(pointList.get(0));
-        Point topRight = pointF2cvPoint(pointList.get(1));
-        Point bottomLeft = pointF2cvPoint(pointList.get(2));
-        Point bottomRight = pointF2cvPoint(pointList.get(3));
+        // get points
+        Point topLeft = boundary.get(0);
+        Point topRight = boundary.get(1);
+        Point bottomLeft = boundary.get(2);
+        Point bottomRight = boundary.get(3);
 
         // define the destination image size
-        int avgWidth = (int) ((-topLeft.x + topRight.x - bottomLeft.x + bottomRight.x) * xScale / 2);
-        int avgHeight = (int) ((-topLeft.y - topRight.y + bottomLeft.y + bottomRight.y) * yScale / 2);
-        Mat dstBGR = Mat.zeros(avgHeight, avgWidth, CvType.CV_8UC3);
+        int avgWidth = (int) ((-topLeft.x + topRight.x - bottomLeft.x + bottomRight.x) / 2);
+        int avgHeight = (int) ((-topLeft.y - topRight.y + bottomLeft.y + bottomRight.y) / 2);
+        Mat transformedMat = Mat.zeros(avgHeight, avgWidth, CvType.CV_8UC3);
 
         // find corners of destination image with the sequence [topLeft, topRight, bottomLeft, bottomRight]
         Mat dstPoints = new Mat(4, 1, CvType.CV_32FC2);
@@ -329,21 +470,21 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         // find corners of source image with the sequence [topLeft, topRight, bottomLeft, bottomRight]
         Mat srcPoints = new Mat(4, 1, CvType.CV_32FC2);
         srcPoints.put(0, 0,
-                (topLeft.x + 0.5) * xScale, (topLeft.y + 0.5) * yScale,
-                (topRight.x + 0.5) * xScale, (topRight.y + 0.5) * yScale,
-                (bottomLeft.x + 0.5) * xScale, (bottomLeft.y + 0.5) * yScale,
-                (bottomRight.x + 0.5) * xScale, (bottomRight.y + 0.5) * yScale);
+                topLeft.x, topLeft.y,
+                topRight.x, topRight.y,
+                bottomLeft.x, bottomLeft.y,
+                bottomRight.x, bottomRight.y);
 
         // get transformation matrix
         Mat transMat = Imgproc.getPerspectiveTransform(srcPoints, dstPoints);
 
         // apply perspective transformation
-        Imgproc.warpPerspective(srcBGR, dstBGR, transMat, dstBGR.size());
+        Imgproc.warpPerspective(src, transformedMat, transMat, transformedMat.size());
 
         // eliminate boundary
-        int xMargin = (int) Math.ceil(xScale * 3);
-        int yMargin = (int) Math.ceil(yScale * 3);
-        Mat subMat = dstBGR.submat(yMargin, avgHeight - yMargin, xMargin, avgWidth - xMargin);
+        int xMargin = 24/receiptNum;
+        int yMargin = 24/receiptNum;
+        Mat subMat = transformedMat.submat(yMargin, avgHeight - yMargin, xMargin, avgWidth - xMargin);
 
         // convert to grayscale image
         Mat dst = new Mat();

@@ -25,7 +25,28 @@
                 android:padding="@dimen/scan_padding" />
 
             <com.example.rychan.fyp.perspective_transform.RegionSelector
-                android:id="@+id/region_selector"
+                android:id="@+id/region_selector1"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <com.example.rychan.fyp.perspective_transform.RegionSelector
+                android:id="@+id/region_selector2"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <com.example.rychan.fyp.perspective_transform.RegionSelector
+                android:id="@+id/region_selector3"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:visibility="gone" />
+
+            <com.example.rychan.fyp.perspective_transform.RegionSelector
+                android:id="@+id/region_selector4"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:layout_gravity="center"

@@ -17,17 +17,22 @@ import android.widget.ImageView;
 import com.example.rychan.fyp.R;
 
 import org.opencv.core.Mat;
+import org.opencv.core.Point;
+import org.opencv.core.Rect;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class HoughResultFragment extends DisplayImageFragment {
 
     private HoughTransform mListener;
 
-    private RegionSelector regionSelector;
+    private int selectorCount = 1;
+    private RegionSelector[] selectors = new RegionSelector[4];
     private Size frameSize;
+    private Point scale;
 
     public HoughResultFragment() {
         // Required empty public constructor
@@ -52,7 +57,10 @@ public class HoughResultFragment extends DisplayImageFragment {
         imageView = (ImageView) view.findViewById(R.id.image_view);
         final Mat src = Imgcodecs.imread(imagePath);
 
-        regionSelector = (RegionSelector) view.findViewById(R.id.region_selector);
+        selectors[0] = (RegionSelector) view.findViewById(R.id.region_selector1);
+        selectors[1] = (RegionSelector) view.findViewById(R.id.region_selector2);
+        selectors[2] = (RegionSelector) view.findViewById(R.id.region_selector3);
+        selectors[3] = (RegionSelector) view.findViewById(R.id.region_selector4);
 
         displayImage(src, imageView);
         ViewTreeObserver vto = imageView.getViewTreeObserver();
@@ -60,11 +68,29 @@ public class HoughResultFragment extends DisplayImageFragment {
             @Override
             public void onGlobalLayout() {
                 imageView.getViewTreeObserver().removeGlobalOnLayoutListener(this);
-                houghTransformTask houghTransformTask = new houghTransformTask(getContext(), src);
-                houghTransformTask.execute();
+                BoundaryDetectionTask boundaryDetectionTask = new BoundaryDetectionTask(getContext(), src);
+                boundaryDetectionTask.execute();
             }
         });
         return view;
+    }
+
+    public void setVisiblility(int which) {
+        switch (which) {
+            case 0:
+                for (int i = 0; i < selectorCount; ++i) {
+                    selectors[i].setVisibility(View.VISIBLE);
+                }
+                break;
+            default:
+                for (int i = 0; i < selectorCount; ++i) {
+                    if (i == which - 1) {
+                        selectors[i].setVisibility(View.VISIBLE);
+                    } else {
+                        selectors[i].setVisibility(View.GONE);
+                    }
+                }
+        }
     }
 
     @Override
@@ -88,7 +114,15 @@ public class HoughResultFragment extends DisplayImageFragment {
     public void onClick(View v) {
         switch (v.getId()) {
             case R.id.button:
-                mListener.onHoughResult(regionSelector.getPoints(), frameSize);
+                List<List<Point>> boundaryList = new ArrayList<>(selectorCount);
+                for (int i = 0; i < selectorCount; ++i) {
+                    List<Point> boundary = new  ArrayList<>(4);
+                    for (PointF point : selectors[i].getPoints()) {
+                        boundary.add(divPointF2CvPoint(point, scale));
+                    }
+                    boundaryList.add(boundary);
+                }
+                mListener.onBoundaryDetected(boundaryList);
         }
     }
 
@@ -103,21 +137,21 @@ public class HoughResultFragment extends DisplayImageFragment {
      * >Communicating with Other Fragments</a> for more information.
      */
     public interface HoughTransform {
-        List<PointF> houghTransform(Mat srcMat, Size frameSize);
-        void onHoughResult(List<PointF> pointList, Size frameSize);
+        List<Rect> detectReceipt(Mat src);
+        List<Point> houghTransform(Mat src);
+        void onBoundaryDetected(List<List<Point>> boundaryList);
     }
 
-
-    private class houghTransformTask extends AsyncTask<Void, Void, Void> {
+    private class BoundaryDetectionTask extends AsyncTask<Void, Void, Void> {
         private ProgressDialog progressDialog;
         private Mat src;
 
-        private List<PointF> pointList;
+        private List<List<PointF>> pointList = new ArrayList<>();
         private int padding;
         private int frameWidth;
         private int frameHeight;
 
-        houghTransformTask(Context context, Mat src) {
+        BoundaryDetectionTask(Context context, Mat src) {
             this.progressDialog = new ProgressDialog(context);
             this.src = src;
         }
@@ -135,11 +169,24 @@ public class HoughResultFragment extends DisplayImageFragment {
             frameWidth = imageView.getWidth() - 2 * padding;
             frameHeight = imageView.getHeight() - 2 * padding;
             frameSize = new Size(frameWidth, frameHeight);
+            scale = new Point(((double) frameWidth) / src.width(), ((double) frameHeight) / src.height());
         }
 
         @Override
         protected Void doInBackground(Void... voids) {
-            pointList = mListener.houghTransform(src, frameSize);
+            List<Rect> subMatList = mListener.detectReceipt(src);
+            if (subMatList.isEmpty() || subMatList.size() > 4) {
+                throw new IllegalArgumentException("too many or too little receipts detected");
+            }
+            for (Rect subMat : subMatList) {
+                Point offset = subMat.tl();
+                List<Point> houghResult = mListener.houghTransform(src.submat(subMat));
+                List<PointF> selectorInput = new ArrayList<>(4);
+                for (Point point : houghResult) {
+                    selectorInput.add(addAndMulCvPoint2PointF(point, offset, scale));
+                }
+                pointList.add(selectorInput);
+            }
             return null;
         }
 
@@ -147,14 +194,24 @@ public class HoughResultFragment extends DisplayImageFragment {
         protected void onPostExecute(Void aVoid) {
             super.onPostExecute(aVoid);
             progressDialog.dismiss();
+//            displayImage(src, imageView);
+            for (selectorCount = 0; selectorCount < pointList.size(); ++selectorCount) {
+                selectors[selectorCount].setPoints(pointList.get(selectorCount), frameWidth, frameHeight);
+                selectors[selectorCount].setVisibility(View.VISIBLE);
 
-            regionSelector.setPoints(pointList, frameWidth, frameHeight);
-            regionSelector.setVisibility(View.VISIBLE);
-
-            FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
-                    frameWidth + 2 * padding, frameHeight + 2 * padding);
-            layoutParams.gravity = Gravity.CENTER;
-            regionSelector.setLayoutParams(layoutParams);
+                FrameLayout.LayoutParams layoutParams = new FrameLayout.LayoutParams(
+                        frameWidth + 2 * padding, frameHeight + 2 * padding);
+                layoutParams.gravity = Gravity.CENTER;
+                selectors[selectorCount].setLayoutParams(layoutParams);
+            }
         }
+    }
+
+    public static PointF addAndMulCvPoint2PointF(Point cvPoint, Point offset, Point scale) {
+        return new PointF((float) ((cvPoint.x + offset.x) * scale.x), (float) ((cvPoint.y + offset.y) * scale.y));
+    }
+
+    public static Point divPointF2CvPoint(PointF pointF, Point scale) {
+        return new Point((pointF.x + 0.5) / scale.x, (pointF.y + 0.5) / scale.y);
     }
 }
