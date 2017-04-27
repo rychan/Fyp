@@ -13,9 +13,9 @@
     <color name="regionSelectorCircleStrokeColor">#59a9ff</color>
     <color name="regionSelectorCircleBackground">#90e5f8ff</color>
 
-    <color name="item_background">#ede39e</color>
-
     <color name="clicked">#dec562</color>
     <color name="unclicked">#f5edc8</color>
     <color name="receipt_background">#cccccc</color>
+
+    <color name="item_background">#ede39e</color>
 </resources>

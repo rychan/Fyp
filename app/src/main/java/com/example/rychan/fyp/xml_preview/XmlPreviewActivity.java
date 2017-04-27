@@ -26,15 +26,11 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.StringWriter;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.math.BigDecimal;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
-
-import static com.example.rychan.fyp.DatePickerDialogFragment.dateFormat;
 
 public class XmlPreviewActivity extends AppCompatActivity implements
         View.OnClickListener, DatePickerDialogFragment.DialogListener,
@@ -57,8 +53,6 @@ public class XmlPreviewActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_xml_preview);
 
-//        Intent intent = getIntent();
-
         shopText = (TextView) findViewById(R.id.shop);
         shopText.setText("All");
         shopText.setOnClickListener(this);
@@ -69,7 +63,7 @@ public class XmlPreviewActivity extends AppCompatActivity implements
         startDate.setOnClickListener(this);
 
         endDate = (TextView) findViewById(R.id.end_date);
-        endDate.setText(new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
+        endDate.setText(DatePickerDialogFragment.dateFormat.format(new Date()));
         endDate.setOnClickListener(this);
 
         totalText = (TextView) findViewById(R.id.total);
@@ -133,10 +127,10 @@ public class XmlPreviewActivity extends AppCompatActivity implements
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         switch (loader.getId()) {
             case LIST_ITEM_LOADER:
-                double total = 0;
+                BigDecimal total = BigDecimal.valueOf(0.0);
                 data.moveToPosition(-1);
                 while (data.moveToNext()) {
-                    total += data.getDouble(data.getColumnIndex(ItemEntry.COLUMN_PRICE));
+                    total = total.add(BigDecimal.valueOf(data.getDouble(data.getColumnIndex(ItemEntry.COLUMN_PRICE))));
                 }
                 totalText.setText(String.valueOf(total));
                 xmlPreviewAdapter.swapCursor(data);
@@ -163,7 +157,7 @@ public class XmlPreviewActivity extends AppCompatActivity implements
                 break;
 
             case SHOP_LOADER:
-                shopList = new ArrayList<>();
+                shopList.clear();
                 break;
             default:
         }
@@ -183,23 +177,16 @@ public class XmlPreviewActivity extends AppCompatActivity implements
                 break;
 
             case R.id.shop:
-                DialogFragment selectShopDialog = new SelectShopDialog();
-                Bundle arg1 = new Bundle();
-                arg1.putStringArrayList(SelectShopDialog.ARG_SHOP_LIST, shopList);
-                arg1.putStringArrayList(SelectShopDialog.ARG_SELECTED_SHOP_LIST, selectedShopList);
-                selectShopDialog.setArguments(arg1);
-                selectShopDialog.show(getSupportFragmentManager(), "ShopSelector");
+                DialogFragment selectShopDialog = SelectShopDialog.newInstance(shopList, selectedShopList);
+                selectShopDialog.show(getSupportFragmentManager(), "select_shop_dialog");
                 break;
 
             case R.id.start_date:
             case R.id.end_date:
                 TextView textView = (TextView) v;
-                DialogFragment datePickerDialogFragment = new DatePickerDialogFragment();
-                Bundle arg2 = new Bundle();
-                arg2.putString(DatePickerDialogFragment.ARG_DATE_STRING, textView.getText().toString());
-                arg2.putInt(DatePickerDialogFragment.ARG_VIEW_ID, v.getId());
-                datePickerDialogFragment.setArguments(arg2);
-                datePickerDialogFragment.show(getSupportFragmentManager(), "DatePicker");
+                DialogFragment datePickerDialogFragment = DatePickerDialogFragment.newInstance(
+                        textView.getText().toString(), v.getId());
+                datePickerDialogFragment.show(getSupportFragmentManager(), "date_picker_dialog");
                 break;
 
             default:
@@ -208,31 +195,29 @@ public class XmlPreviewActivity extends AppCompatActivity implements
 
     @Override
     public void getDateString(int viewId, String date) {
-        try {
-            Date newDate = dateFormat.parse(date);
-            Date start = dateFormat.parse(startDate.getText().toString());
-            Date end = dateFormat.parse(endDate.getText().toString());
-            if (viewId == startDate.getId() && !end.before(newDate) ||
-                    viewId == endDate.getId() && !start.after(newDate)) {
-                TextView textView = (TextView) findViewById(viewId);
-                textView.setText(date);
-                getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
-            }
-        } catch (ParseException e) {
+        Date newDate = DatePickerDialogFragment.parseDate(date);
+        Date start = DatePickerDialogFragment.parseDate(startDate.getText().toString());
+        Date end = DatePickerDialogFragment.parseDate(endDate.getText().toString());
+
+        if (viewId == startDate.getId() && !end.before(newDate) ||
+                viewId == endDate.getId() && !start.after(newDate)) {
+            TextView textView = (TextView) findViewById(viewId);
+            textView.setText(date);
+            getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
         }
     }
 
     @Override
-    public void onDialogPositiveClick(String[] selected_shop) {
-        if (selected_shop.length == 0 || selected_shop.length == shopList.size()) {
+    public void onDialogPositiveClick(ArrayList<String> selectedShopList) {
+        if (selectedShopList.size() == 0 || selectedShopList.size() == shopList.size()) {
             shopText.setText("All");
-            selectedShopList = new ArrayList<>();
-        } else if (selected_shop.length == 1){
-            shopText.setText(selected_shop[0]);
-            selectedShopList = new ArrayList<>(Arrays.asList(selected_shop));
+            this.selectedShopList.clear();
+        } else if (selectedShopList.size() == 1){
+            shopText.setText(selectedShopList.get(0));
+            this.selectedShopList = selectedShopList;
         } else {
-            shopText.setText(String.valueOf(selected_shop.length) + " Shops");
-            selectedShopList = new ArrayList<>(Arrays.asList(selected_shop));
+            shopText.setText(String.valueOf(selectedShopList.size()) + " Shops");
+            this.selectedShopList = selectedShopList;
         }
         getSupportLoaderManager().restartLoader(LIST_ITEM_LOADER, null, this);
     }
@@ -256,9 +241,11 @@ public class XmlPreviewActivity extends AppCompatActivity implements
             serializer.startTag("", "report");
 
             serializer.startTag("", "shop_list");
-            serializer.startTag("", "shop");
-            serializer.text("All");
-            serializer.endTag("", "shop");
+            for (String shop: selectedShopList) {
+                serializer.startTag("", "shop");
+                serializer.text(shop);
+                serializer.endTag("", "shop");
+            }
             serializer.endTag("", "shop_list");
 
             serializer.startTag("", "start_date");

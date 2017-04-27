@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.util.Log;
 
 import com.example.rychan.fyp.DatePickerDialogFragment;
 import com.example.rychan.fyp.provider.Contract.*;
@@ -162,6 +163,7 @@ public class RecognitionResult{
                     date = databaseFormat.format(dateFormat.parse(text));
                     dateFound = true;
                 } catch (ParseException e) {
+                    Log.e("Recognition", "Cannot parse date");
                 }
             }
         }

@@ -14,13 +14,23 @@ import android.support.v7.app.AlertDialog;
 
 public class DeleteReceiptDialog extends DialogFragment{
 
-    public static final String ARG_FILE_PATH = "file_path";
-    public static final String ARG_RECEIPT_ID = "receipt_id";
-
-    private DialogListener mListener;
+    private static final String ARG_FILE_PATH = "file_path";
+    private static final String ARG_RECEIPT_ID = "receipt_id";
 
     private String filePath;
     private int receiptId;
+
+    private DialogListener mListener;
+
+
+    public static DeleteReceiptDialog newInstance(String filePath, int receiptId) {
+        DeleteReceiptDialog dialog = new DeleteReceiptDialog();
+        Bundle arg = new Bundle();
+        arg.putString(ARG_FILE_PATH, filePath);
+        arg.putInt(ARG_RECEIPT_ID, receiptId);
+        dialog.setArguments(arg);
+        return dialog;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

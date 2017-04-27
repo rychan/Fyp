@@ -42,20 +42,19 @@ import java.util.List;
 public class PerspectiveTransformActivity extends AppCompatActivity implements
         HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor,
         BinarizationSettingDialog.DialogListener, ReceiptNumberDialog.DialogListener,
-        StateBar.OnTabChangeListener {
+        StateBar.OnTabClickListener {
 
     private String imagePath;
-
-    private StateBar stateBar;
-
-    private int currentDisplay = 0;
-    private List<List<Point>> boundaryList;
+    private int receiptNum;
 
     private int blurBlockSize;
     private int thresholdBlockSize;
     private double thresholdConstant;
 
-    private int receiptNum;
+    private StateBar stateBar;
+
+    private List<List<Point>> boundaryList;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,7 +80,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
             }
 
             DialogFragment dialog = new ReceiptNumberDialog();
-            dialog.show(getSupportFragmentManager(), "ReceiptNumberDialog");
+            dialog.show(getSupportFragmentManager(), "receipt_number_dialog");
         }
     }
 
@@ -95,12 +94,12 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     @Override
     public void onNumSelected(int num) {
         receiptNum = num;
-        stateBar.setTabState(true, receiptNum);
+        stateBar.initHoughTab(receiptNum);
 
         // Create a new Fragment to be placed in the activity layout
         // Add the fragment to the 'fragment_container' FrameLayout
         getSupportFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, HoughResultFragment.newInstance(imagePath), "HOUGH_FRAGMENT")
+                .add(R.id.fragment_container, HoughResultFragment.newInstance(imagePath), "hough_fragment")
                 .commit();
     }
 
@@ -110,7 +109,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
             // perform your desired action here
             DialogFragment dialog = new BinarizationSettingDialog();
-            dialog.show(getSupportFragmentManager(), "BinarizationSettingDialog");
+            dialog.show(getSupportFragmentManager(), "binarization_setting_dialog");
 
             // return 'true' to prevent further propagation of the key event
             return true;
@@ -123,21 +122,20 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     @Override
     public void onDialogPositiveClick() {
         getBinarizationSetting();
-        Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+        Fragment f = getSupportFragmentManager().findFragmentByTag("display_fragment");
         if (f != null) {
             ((DisplayImageFragment) f).processAndDisplay();
         }
     }
 
     @Override
-    public void onTabChange(int tab) {
-        Fragment f = getSupportFragmentManager().findFragmentByTag("HOUGH_FRAGMENT");
+    public void onTabClick() {
+        Fragment f = getSupportFragmentManager().findFragmentByTag("hough_fragment");
         if (f != null && f.isVisible()) {
-            ((HoughResultFragment) f).setVisiblility(tab);
+            ((HoughResultFragment) f).setVisibility(stateBar.onFocusTab);
         } else {
-            f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+            f = getSupportFragmentManager().findFragmentByTag("display_fragment");
             if (f != null && f.isVisible()) {
-                currentDisplay = tab - 1;
                 ((DisplayImageFragment) f).processAndDisplay();
             }
         }
@@ -382,8 +380,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     @Override
     public void onBoundaryDetected(List<List<Point>> boundaryList) {
         this.boundaryList = boundaryList;
-        stateBar.setTabState(false, receiptNum);
-        currentDisplay = 0;
+        stateBar.initDisplayTab(receiptNum);
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
 
@@ -391,7 +388,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         // Replace whatever is in the fragment_container view with this fragment,
         // and add the transaction to the back stack so the user can navigate back
         transaction.replace(R.id.fragment_container, DisplayImageFragment.newInstance(imagePath),
-                "RESULT_FRAGMENT");
+                "display_fragment");
         transaction.addToBackStack(null);
 
         // Commit the transaction
@@ -400,7 +397,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
     @Override
     public Mat processImage(Mat src) {
-        return pTransform(src, boundaryList.get(currentDisplay));
+        return pTransform(src, boundaryList.get(stateBar.onFocusTab - 1));
     }
 
     @Override
@@ -430,11 +427,12 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
             Uri uri = getContentResolver().insert(ReceiptProvider.RECEIPT_CONTENT_URI, values);
             int receiptId = Integer.valueOf(uri.getLastPathSegment());
 
-            RecognitionService.startActionRecognition(this, receiptPath, receiptId);
-            stateBar.setUnclickable(currentDisplay + 1);
-            ++currentDisplay;
-            if (currentDisplay < boundaryList.size()) {
-                Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+            RecognitionService.startRecognition(this, receiptPath, receiptId);
+            stateBar.setUnclickable(stateBar.onFocusTab);
+            int nextUnclick = stateBar.getUnclick();
+            if (nextUnclick > 0) {
+                stateBar.setClicked(nextUnclick);
+                Fragment f = getSupportFragmentManager().findFragmentByTag("display_fragment");
                 if (f != null) {
                     ((DisplayImageFragment) f).processAndDisplay();
                 }

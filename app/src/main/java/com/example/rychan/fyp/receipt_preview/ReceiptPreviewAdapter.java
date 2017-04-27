@@ -4,7 +4,6 @@ import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.widget.CursorAdapter;
 import android.support.v7.app.AppCompatActivity;
@@ -119,11 +118,8 @@ public class ReceiptPreviewAdapter extends CursorAdapter implements View.OnClick
                     ContentUris.withAppendedId(ReceiptProvider.ITEM_CONTENT_URI, itemId),
                     values, null, null);
         } else {
-            DialogFragment dialog = new UpdateItemDialog();
-            Bundle arg = new Bundle();
-            arg.putInt(UpdateItemDialog.ARG_ROW_ID, v.getId());
-            dialog.setArguments(arg);
-            dialog.show(((AppCompatActivity) mContext).getSupportFragmentManager(), "UpdateItemDialog");
+            DialogFragment dialogFragment = UpdateItemDialog.newInstance(v.getId());
+            dialogFragment.show(((AppCompatActivity) mContext).getSupportFragmentManager(), "update_item_dialog");
         }
     }
 

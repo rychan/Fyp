@@ -28,25 +28,25 @@ import java.util.List;
 
 public class RecognitionService extends IntentService {
 
-    private static final String RECEIPT_PATH = "receiptPath";
-    private static final String RECEIPT_ID = "receiptId";
+    private static final String ARG_RECEIPT_PATH = "receipt_path";
+    private static final String ARG_RECEIPT_ID = "receipt_id";
 
     public RecognitionService() {
         super("RecognitionService");
     }
 
-    public static void startActionRecognition(Context context, String receiptPath, int receiptId) {
+    public static void startRecognition(Context context, String receiptPath, int receiptId) {
         Intent intent = new Intent(context, RecognitionService.class);
-        intent.putExtra(RECEIPT_PATH, receiptPath);
-        intent.putExtra(RECEIPT_ID, receiptId);
+        intent.putExtra(ARG_RECEIPT_PATH, receiptPath);
+        intent.putExtra(ARG_RECEIPT_ID, receiptId);
         context.startService(intent);
     }
 
     @Override
     protected void onHandleIntent(Intent intent) {
         if (intent != null) {
-            String receiptPath = intent.getStringExtra(RECEIPT_PATH);
-            int receiptId = intent.getIntExtra(RECEIPT_ID, -1);
+            String receiptPath = intent.getStringExtra(ARG_RECEIPT_PATH);
+            int receiptId = intent.getIntExtra(ARG_RECEIPT_ID, -1);
             Mat src = Imgcodecs.imread(receiptPath, 0);
 
             List<Range> segmentationResult = segmentation(src, 0);
@@ -243,49 +243,5 @@ public class RecognitionService extends IntentService {
             baseApi.end();
         }
         return recognitionResult;
-    }
-
-
-    private RecognitionResult textRecognition1(Mat src, List<Range> segmentationResult){
-        RecognitionResult recognitionResult = new RecognitionResult(
-            null
-        );
-        String whitelist = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890$/.";
-
-        TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SINGLE_LINE);
-        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
-        baseApi.setVariable(TessBaseAPI.VAR_CHAR_WHITELIST, whitelist);
-
-        for (Range r: segmentationResult) {
-            Bitmap bm = Bitmap.createBitmap(src.cols(), r.size(), Bitmap.Config.ARGB_8888);
-            Utils.matToBitmap(src.rowRange(r), bm);
-
-            baseApi.setImage(bm);
-            String result = baseApi.getUTF8Text();
-            recognitionResult.addEngLine(r, result);
-        }
-        baseApi.clear();
-        baseApi.end();
-        return recognitionResult;
-    }
-
-    private List<String> textRecognition2(Mat srcImage){
-        List<String> resultList = new ArrayList<>();
-
-        TessBaseAPI baseApi = new TessBaseAPI();
-        baseApi.init(Environment.getExternalStorageDirectory().getPath(), "eng");
-        baseApi.setPageSegMode(TessBaseAPI.PageSegMode.PSM_SPARSE_TEXT);
-
-        Bitmap bm = Bitmap.createBitmap(srcImage.cols(), srcImage.rows(), Bitmap.Config.ARGB_8888);
-        Utils.matToBitmap(srcImage, bm);
-
-        baseApi.setImage(bm);
-        resultList.add(baseApi.getUTF8Text());
-
-
-        baseApi.clear();
-        baseApi.end();
-        return resultList;
     }
 }

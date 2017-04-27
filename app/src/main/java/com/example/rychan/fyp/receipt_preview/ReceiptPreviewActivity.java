@@ -15,7 +15,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
-import android.widget.AdapterView;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
 import android.widget.EditText;
@@ -32,11 +31,12 @@ import org.opencv.core.Mat;
 import org.opencv.core.Range;
 import org.opencv.imgcodecs.Imgcodecs;
 
+import java.math.BigDecimal;
+
 
 public class ReceiptPreviewActivity extends AppCompatActivity implements
-        View.OnClickListener, AdapterView.OnItemClickListener,
-        DatePickerDialogFragment.DialogListener, UpdateItemDialog.DialogListener,
-        LoaderManager.LoaderCallbacks<Cursor> {
+        View.OnClickListener, DatePickerDialogFragment.DialogListener,
+        UpdateItemDialog.DialogListener, LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final int LIST_ITEM_LOADER = 0;
     private static final int AUTO_COMPLETE_LOADER = 1;
@@ -91,15 +91,10 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
         ListView listView = (ListView) findViewById(R.id.list_view);
         receiptPreviewAdapter = new ReceiptPreviewAdapter(this, null, src);
         listView.setAdapter(receiptPreviewAdapter);
-        listView.setOnItemClickListener(this);
         getSupportLoaderManager().initLoader(LIST_ITEM_LOADER, null, this);
 
         Button saveButton = (Button) findViewById(R.id.button);
         saveButton.setOnClickListener(this);
-    }
-
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
     }
 
     @Override
@@ -129,16 +124,16 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         switch (loader.getId()) {
             case LIST_ITEM_LOADER:
-                double total = 0;
+                BigDecimal total = BigDecimal.valueOf(0.0);
                 data.moveToPosition(-1);
                 while (data.moveToNext()) {
                     if (data.getInt(data.getColumnIndex(ItemEntry.COLUMN_TYPE)) == ItemEntry.TYPE_ITEM) {
-                        total += data.getDouble(data.getColumnIndex(ItemEntry.COLUMN_PRICE));
+                        total = total.add(BigDecimal.valueOf(data.getDouble(data.getColumnIndex(ItemEntry.COLUMN_PRICE))));
                     }
                 }
                 totalText.setText(String.valueOf(total));
                 ContentValues values = new ContentValues();
-                values.put(ReceiptEntry.COLUMN_TOTAL, total);
+                values.put(ReceiptEntry.COLUMN_TOTAL, total.doubleValue());
                 getContentResolver().update(
                         ContentUris.withAppendedId(ReceiptProvider.RECEIPT_CONTENT_URI, receiptId),
                         values, null, null);
@@ -185,12 +180,9 @@ public class ReceiptPreviewActivity extends AppCompatActivity implements
 
             case R.id.date:
                 TextView textView = (TextView) v;
-                DialogFragment dialogFragment = new DatePickerDialogFragment();
-                Bundle arg = new Bundle();
-                arg.putString(DatePickerDialogFragment.ARG_DATE_STRING, textView.getText().toString());
-                arg.putInt(DatePickerDialogFragment.ARG_VIEW_ID, R.id.date);
-                dialogFragment.setArguments(arg);
-                dialogFragment.show(getSupportFragmentManager(), "DatePicker");
+                DialogFragment dialogFragment = DatePickerDialogFragment.newInstance(
+                        textView.getText().toString(), R.id.date);
+                dialogFragment.show(getSupportFragmentManager(), "date_picker_dialog");
                 break;
 
             default:

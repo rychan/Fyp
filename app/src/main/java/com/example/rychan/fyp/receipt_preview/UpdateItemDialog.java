@@ -18,12 +18,21 @@ import com.example.rychan.fyp.R;
  */
 
 public class UpdateItemDialog extends DialogFragment {
-    // Use this instance of the interface to deliver action events
-    private DialogListener mListener;
 
-    public static final String ARG_ROW_ID = "view_id";
+    private static final String ARG_ROW_ID = "view_id";
 
     private int rowId;
+
+    private DialogListener mListener;
+
+
+    public static UpdateItemDialog newInstance(int rowId) {
+        UpdateItemDialog fragment = new UpdateItemDialog();
+        Bundle arg = new Bundle();
+        arg.putInt(ARG_ROW_ID, rowId);
+        fragment.setArguments(arg);
+        return fragment;
+    }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

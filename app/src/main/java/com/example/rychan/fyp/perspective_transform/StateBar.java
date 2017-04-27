@@ -16,7 +16,7 @@ import com.example.rychan.fyp.R;
 
 public class StateBar extends LinearLayout implements View.OnClickListener {
 
-    private OnTabChangeListener mListener;
+    private OnTabClickListener mListener;
 
     private int[] state = new int[5];
     private TextView[] tab = new TextView[5];
@@ -24,7 +24,7 @@ public class StateBar extends LinearLayout implements View.OnClickListener {
     private final int STATE_UNCLICKABLE = -1;
     private final int STATE_UNCLICK = 0;
     private final int STATE_CLICKED = 1;
-    private int clicking;
+    public int onFocusTab = 0;
 
     public StateBar(Context context) {
         super(context);
@@ -44,11 +44,11 @@ public class StateBar extends LinearLayout implements View.OnClickListener {
     private void init(){
         try {
             // Instantiate the DialogListener so we can send events to the host
-            mListener = (OnTabChangeListener) getContext();
+            mListener = (OnTabClickListener) getContext();
         } catch (ClassCastException e) {
             // The context doesn't implement the interface, throw exception
             throw new ClassCastException(getContext().toString()
-                    + " must implement OnTabChangeListener");
+                    + " must implement OnTabClickListener");
         }
 
         LayoutInflater.from(getContext()).inflate(R.layout.state_bar, this);
@@ -61,7 +61,7 @@ public class StateBar extends LinearLayout implements View.OnClickListener {
         for (int i = 0; i < 5; ++i){
             tab[i] = (TextView) findViewById(idMap.keyAt(idMap.indexOfValue(i)));
             tab[i].setOnClickListener(this);
-            state[i] = STATE_UNCLICK;
+            setUnclickable(i);
         }
     }
 
@@ -77,40 +77,51 @@ public class StateBar extends LinearLayout implements View.OnClickListener {
         tab[index].setTextColor(getResources().getColor(android.R.color.black));
     }
 
-    private void setClicked(int index) {
+    public void setClicked(int index) {
+        if (state[onFocusTab] == STATE_CLICKED) {
+            setUnclick(onFocusTab);
+        }
         state[index] = STATE_CLICKED;
         tab[index].setBackgroundColor(getResources().getColor(R.color.background));
         tab[index].setTextColor(getResources().getColor(android.R.color.black));
-        clicking = index;
+        onFocusTab = index;
     }
 
-    public void setTabState(boolean isTabAllClickable, int receiptNum) {
-        for (int i = 1; i < 5; ++i) {
-            if (i <= receiptNum) {
-                setUnclick(i);
-            } else {
-                setUnclickable(i);
+    public void initHoughTab(int receiptNum) {
+        for (int i = 1; i <= receiptNum; ++i) {
+            setUnclick(i);
+        }
+        setClicked(0);
+    }
+
+    public void initDisplayTab(int receiptNum) {
+        for (int i = 2; i <= receiptNum; ++i) {
+            setUnclick(i);
+        }
+        setUnclickable(0);
+        setClicked(1);
+    }
+
+    public int getUnclick() {
+        for (int i = 0; i < 5; ++i) {
+            if (state[i] == STATE_UNCLICK) {
+                return i;
             }
         }
-        if (isTabAllClickable) {
-            setClicked(0);
-        } else {
-            setUnclickable(0);
-            setClicked(1);
-        }
+        return -1;
     }
 
     @Override
     public void onClick(View v) {
         int index = idMap.get(v.getId());
         if (state[index] == STATE_UNCLICK) {
-            setUnclick(clicking);
+            setUnclick(onFocusTab);
             setClicked(index);
-            mListener.onTabChange(clicking);
+            mListener.onTabClick();
         }
     }
 
-    public interface OnTabChangeListener {
-        void onTabChange(int tab);
+    public interface OnTabClickListener {
+        void onTabClick();
     }
 }

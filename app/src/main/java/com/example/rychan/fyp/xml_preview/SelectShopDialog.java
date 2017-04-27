@@ -21,10 +21,21 @@ public class SelectShopDialog extends DialogFragment{
     public static final String ARG_SHOP_LIST = "shop_list";
     public static final String ARG_SELECTED_SHOP_LIST = "selected_shop_list";
 
-    private DialogListener mListener;
-
     private List<String> shopList = new ArrayList<>();
     private boolean[] booleanArray;
+
+    private DialogListener mListener;
+
+
+    public static SelectShopDialog newInstance(ArrayList<String> shopList, ArrayList<String> selectedShopList) {
+        SelectShopDialog fragment = new SelectShopDialog();
+        Bundle arg = new Bundle();
+        arg.putStringArrayList(ARG_SHOP_LIST, shopList);
+        arg.putStringArrayList(ARG_SELECTED_SHOP_LIST, selectedShopList);
+        fragment.setArguments(arg);
+        return fragment;
+    }
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -74,13 +85,13 @@ public class SelectShopDialog extends DialogFragment{
                 .setPositiveButton("Select", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int id) {
-                        List<String> selectedShop = new ArrayList<>();
+                        ArrayList<String> selectedShop = new ArrayList<>();
                         for (int i = 1; i < shopList.size(); ++i) {
                             if (booleanArray[i]) {
                                 selectedShop.add(shopList.get(i));
                             }
                         }
-                        mListener.onDialogPositiveClick(selectedShop.toArray(new String[selectedShop.size()]));
+                        mListener.onDialogPositiveClick(selectedShop);
                     }
                 })
                 .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
@@ -95,7 +106,7 @@ public class SelectShopDialog extends DialogFragment{
     * implement this interface in order to receive event callbacks.
     * Each method passes the DialogFragment in case the host needs to query it. */
     public interface DialogListener {
-        void onDialogPositiveClick(String[] selected_shop);
+        void onDialogPositiveClick(ArrayList<String> selectedShopList);
     }
 
     @Override
