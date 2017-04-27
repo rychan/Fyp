@@ -41,9 +41,12 @@ import java.util.List;
 
 public class PerspectiveTransformActivity extends AppCompatActivity implements
         HoughResultFragment.HoughTransform, DisplayImageFragment.ImageProcessor,
-        BinarizationSettingDialog.DialogListener, ReceiptNumberDialog.DialogListener {
+        BinarizationSettingDialog.DialogListener, ReceiptNumberDialog.DialogListener,
+        StateBar.OnTabChangeListener {
 
     private String imagePath;
+
+    private StateBar stateBar;
 
     private int currentDisplay = 0;
     private List<List<Point>> boundaryList;
@@ -61,6 +64,8 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
 
         Intent intent = getIntent();
         imagePath = intent.getStringExtra("receipt_path");
+
+        stateBar = (StateBar) findViewById(R.id.state_bar);
 
         getBinarizationSetting();
 
@@ -90,10 +95,12 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     @Override
     public void onNumSelected(int num) {
         receiptNum = num;
+        stateBar.setTabState(true, receiptNum);
+
         // Create a new Fragment to be placed in the activity layout
         // Add the fragment to the 'fragment_container' FrameLayout
         getSupportFragmentManager().beginTransaction()
-                .add(R.id.fragment_container, HoughResultFragment.newInstance(imagePath))
+                .add(R.id.fragment_container, HoughResultFragment.newInstance(imagePath), "HOUGH_FRAGMENT")
                 .commit();
     }
 
@@ -119,6 +126,20 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
         Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
         if (f != null) {
             ((DisplayImageFragment) f).processAndDisplay();
+        }
+    }
+
+    @Override
+    public void onTabChange(int tab) {
+        Fragment f = getSupportFragmentManager().findFragmentByTag("HOUGH_FRAGMENT");
+        if (f != null && f.isVisible()) {
+            ((HoughResultFragment) f).setVisiblility(tab);
+        } else {
+            f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");
+            if (f != null && f.isVisible()) {
+                currentDisplay = tab - 1;
+                ((DisplayImageFragment) f).processAndDisplay();
+            }
         }
     }
 
@@ -361,6 +382,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
     @Override
     public void onBoundaryDetected(List<List<Point>> boundaryList) {
         this.boundaryList = boundaryList;
+        stateBar.setTabState(false, receiptNum);
         currentDisplay = 0;
 
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
@@ -409,6 +431,7 @@ public class PerspectiveTransformActivity extends AppCompatActivity implements
             int receiptId = Integer.valueOf(uri.getLastPathSegment());
 
             RecognitionService.startActionRecognition(this, receiptPath, receiptId);
+            stateBar.setUnclickable(currentDisplay + 1);
             ++currentDisplay;
             if (currentDisplay < boundaryList.size()) {
                 Fragment f = getSupportFragmentManager().findFragmentByTag("RESULT_FRAGMENT");

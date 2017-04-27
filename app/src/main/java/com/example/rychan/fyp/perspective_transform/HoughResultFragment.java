@@ -75,6 +75,24 @@ public class HoughResultFragment extends DisplayImageFragment {
         return view;
     }
 
+    public void setVisiblility(int which) {
+        switch (which) {
+            case 0:
+                for (int i = 0; i < selectorCount; ++i) {
+                    selectors[i].setVisibility(View.VISIBLE);
+                }
+                break;
+            default:
+                for (int i = 0; i < selectorCount; ++i) {
+                    if (i == which - 1) {
+                        selectors[i].setVisibility(View.VISIBLE);
+                    } else {
+                        selectors[i].setVisibility(View.GONE);
+                    }
+                }
+        }
+    }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
